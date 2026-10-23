@@ -38,6 +38,7 @@ jobs:
         run: |
           mkdir -p _site/data
           cp index.html _site/
+          cp icon.svg icon-180.png icon-192.png icon-512.png manifest.webmanifest _site/
           cp data/props.json _site/data/
           touch _site/.nojekyll
       - uses: actions/upload-pages-artifact@v3
