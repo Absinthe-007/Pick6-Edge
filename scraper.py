@@ -345,17 +345,21 @@ def breakevens(payout_packages):
 # DraftKings Pick6
 # --------------------------------------------------------------------------------------
 def pick6_sport(sport):
-    txt = get(f"{P6}/_root.data", params={"sport": sport}, as_text=True)
-    if not txt:
-        log(f"[pick6] {sport}: no response")
-        return [], {}
-    try:
-        root = turbo_decode(txt)["routes/_homeShared"]["data"]
-    except Exception as e:
-        log(f"[pick6] {sport}: decode failed {e}")
-        return [], {}
-    if root.get("selectedSportLeague", {}).get("league", {}).get("leagueAbbreviation") not in (sport,):
-        log(f"[pick6] {sport}: no active slate")
+    root, got = None, None
+    for attempt in range(4):  # Pick6 sometimes falls back to another sport's page - retry
+        txt = get(f"{P6}/_root.data", params={"sport": sport}, as_text=True)
+        try:
+            r = turbo_decode(txt)["routes/_homeShared"]["data"] if txt else None
+        except Exception as e:
+            r = None
+            log(f"[pick6] {sport}: decode failed {e}")
+        got = (r or {}).get("selectedSportLeague", {}).get("league", {}).get("leagueAbbreviation")
+        if r and got == sport:
+            root = r
+            break
+        time.sleep(3 + 3 * attempt)
+    if not root:
+        log(f"[pick6] {sport}: no active slate (page returned {got})")
         return [], {}
     payouts = breakevens(root.get("entryDetails", {}).get("payoutPackages"))
     groups = root.get("pickGroups") or []
