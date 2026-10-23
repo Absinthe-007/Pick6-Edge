@@ -1,6 +1,6 @@
 # Pick6 Edge
 
-Live board for **DraftKings Pick6** player props — NFL, College Football and MLB.
+Live board for **DraftKings Pick6** player props — NFL, College Football and NBA.
 
 For every Pick6 line it shows:
 

@@ -2,7 +2,7 @@
 """
 Pick6 Edge scraper
 ==================
-Pulls every DraftKings Pick6 line for NFL, College Football and MLB, enriches each
+Pulls every DraftKings Pick6 line for NFL, College Football and NBA, enriches each
 prop with the player's recent game log / season average / matchup notes, pulls
 player-prop and game odds from sportsbooks, and computes the probability of the
 prop going MORE or LESS plus the best place to play it.
@@ -39,7 +39,7 @@ ODDS_API = "https://api.the-odds-api.com/v4"
 SPORTS = {
     "NFL": {"kambi": "american_football/nfl", "bovada": "football/nfl", "oddsapi": "americanfootball_nfl"},
     "CFB": {"kambi": "american_football/ncaaf", "bovada": "football/college-football", "oddsapi": "americanfootball_ncaaf"},
-    "MLB": {"kambi": "baseball/mlb", "bovada": "baseball/mlb", "oddsapi": "baseball_mlb"},
+    "NBA": {"kambi": "basketball/nba", "bovada": "basketball/nba", "oddsapi": "basketball_nba"},
 }
 
 SESSION = requests.Session()
@@ -193,47 +193,46 @@ def stat_key(label, sport):
         if "sack" in s:
             return "sacks"
         return None
-    # MLB
-    if "strikeout" in s and ("thrown" in s or "pitcher" in s or "recorded" in s or s.strip() in ("strikeouts", "total strikeouts")):
-        return "pitcher_k"
-    if "hits allowed" in s:
-        return "hits_allowed"
-    if "earned run" in s:
-        return "earned_runs"
-    if "outs" in s:
-        return "outs"
-    if "pitches" in s:
-        return "pitches"
-    if "hits" in s and "runs" in s and "rbi" in s:
-        return "hrr"
-    if "hits" in s and "runs" in s and ("sb" in s or "stolen" in s):
-        return "hr_sb"
-    if "extra base" in s:
-        return "xbh"
-    if "total bases" in s:
-        return "total_bases"
-    if "home run" in s:
-        return "home_runs"
-    if "stolen" in s:
-        return "stolen_bases"
-    if "rbi" in s:
-        return "rbis"
-    if "single" in s:
-        return "singles"
-    if "walk" in s:
-        return "walks"
-    if re.search(r"\bruns\b", s) and "hits" not in s:
-        return "runs"
-    if re.search(r"\bhits\b", s):
-        return "hits"
+    # NBA
+    if "first" in s or "1st" in s or "double" in s or "fantasy" in s:
+        return None
+    if re.search(r"3[- ]?p(oint|t)|three|made 3|threes", s):
+        return "threes"
+    pts = "point" in s or re.search(r"\bpts\b", s)
+    reb = "rebound" in s or re.search(r"\brebs?\b", s)
+    ast = "assist" in s or re.search(r"\basts?\b", s)
+    stl = "steal" in s or re.search(r"\bstls?\b", s)
+    blk = "block" in s or re.search(r"\bblks?\b", s)
+    if pts and reb and ast:
+        return "pra"
+    if pts and reb:
+        return "pts_reb"
+    if pts and ast:
+        return "pts_ast"
+    if reb and ast:
+        return "reb_ast"
+    if stl and blk:
+        return "stl_blk"
+    if pts:
+        return "points"
+    if reb:
+        return "rebounds"
+    if ast:
+        return "assists"
+    if stl:
+        return "steals"
+    if blk:
+        return "blocks"
+    if "turnover" in s:
+        return "turnovers"
     return None
 
 
 COUNT_STATS = {"first_td", "td_1h", "td_1q", "receptions", "pass_tds", "pass_att", "pass_cmp", "ints", "rush_att", "anytime_td", "fg_made", "kick_pts",
-               "tackles", "sacks", "pitcher_k", "hits_allowed", "earned_runs", "outs", "hrr", "hr_sb", "xbh", "total_bases",
-               "home_runs", "stolen_bases", "rbis", "singles", "walks", "runs", "hits"}
+               "tackles", "sacks", "threes", "steals", "blocks", "stl_blk", "turnovers"}
 CV = {"pass_yds": 0.30, "rush_yds": 0.55, "rec_yds": 0.65, "rush_rec_yds": 0.50, "pass_rush_yds": 0.30,
-      "long_rec": 0.55, "long_rush": 0.6, "long_pass": 0.35, "pitches": 0.15}
+      "long_rec": 0.55, "long_rush": 0.6, "long_pass": 0.35,
+      "points": 0.32, "rebounds": 0.40, "assists": 0.45, "pra": 0.26, "pts_reb": 0.29, "pts_ast": 0.30, "reb_ast": 0.36}
 
 
 # --------------------------------------------------------------------------------------
@@ -524,15 +523,11 @@ def kambi(sport, book_lines, games):
                     pass
                 if lab in ("Moneyline", "Moneyline - Including Overtime") and len(outs) == 2 and "ml" not in gl:
                     gl["ml"] = {o.get("participant") or o.get("label"): o.get("oddsAmerican") for o in outs}
-                if lab.startswith("Point Spread") and "Including Overtime" in lab and "spread" not in gl and len(outs) == 2:
+                if (lab == "Point Spread" or (lab.startswith("Point Spread") and "Including Overtime" in lab)) and "spread" not in gl and len(outs) == 2:
                     gl["spread"] = {o.get("participant") or o.get("label"): [o.get("line", 0) / 1000, o.get("oddsAmerican")] for o in outs}
                 if lab.startswith("Total Points") and "Including Overtime" in lab and "total" not in gl and len(outs) == 2:
                     gl["total"] = [outs[0].get("line", 0) / 1000, {o["label"]: o.get("oddsAmerican") for o in outs}]
-                if lab in ("Run Line", "Run Line - Including Extra Innings") and "spread" not in gl and len(outs) == 2:
-                    gl["spread"] = {o.get("participant") or o.get("label"): [o.get("line", 0) / 1000, o.get("oddsAmerican")] for o in outs}
-                if lab.startswith("Total Runs") and "total" not in gl and len(outs) == 2 and "by" not in lab.lower():
-                    gl["total"] = [outs[0].get("line", 0) / 1000, {o["label"]: o.get("oddsAmerican") for o in outs}]
-                sk = special_key(lab) if sport != "MLB" else None
+                sk = special_key(lab) if sport in ("NFL", "CFB") else None
                 if sk == "first_td":
                     n += add_multiway(book_lines, "BetRivers", [(o.get("participant"), o.get("oddsAmerican")) for o in outs if o.get("participant")], sk, sport)
                     continue
@@ -608,7 +603,7 @@ def bovada(sport, book_lines, games):
                     if dg.get("description") == "Game Lines":
                         if desc == "Moneyline" and "ml" not in gl:
                             gl["ml"] = {o["description"]: o["price"].get("american") for o in outs}
-                        elif desc in ("Point Spread", "Runline") and "spread" not in gl:
+                        elif desc == "Point Spread" and "spread" not in gl:
                             gl["spread"] = {o["description"]: [float(o["price"].get("handicap") or 0), o["price"].get("american")] for o in outs}
                         elif desc == "Total" and "total" not in gl and outs:
                             gl["total"] = [float(outs[0]["price"].get("handicap") or 0), {o["description"]: o["price"].get("american") for o in outs}]
@@ -636,12 +631,12 @@ def bovada(sport, book_lines, games):
 ODDSAPI_MARKETS = {
     "NFL": "player_pass_yds,player_rush_yds,player_reception_yds,player_receptions,player_rush_reception_yds,player_pass_tds,player_anytime_td",
     "CFB": "player_pass_yds,player_rush_yds,player_reception_yds,player_receptions,player_pass_tds",
-    "MLB": "pitcher_strikeouts,batter_hits,batter_total_bases,batter_hits_runs_rbis,batter_home_runs,batter_stolen_bases,pitcher_outs",
+    "NBA": "player_points,player_rebounds,player_assists,player_threes,player_points_rebounds_assists",
 }
 ODDSAPI_KEYMAP = {"player_pass_yds": "pass_yds", "player_rush_yds": "rush_yds", "player_reception_yds": "rec_yds", "player_receptions": "receptions",
                   "player_rush_reception_yds": "rush_rec_yds", "player_pass_tds": "pass_tds", "player_anytime_td": "anytime_td",
-                  "pitcher_strikeouts": "pitcher_k", "batter_hits": "hits", "batter_total_bases": "total_bases",
-                  "batter_hits_runs_rbis": "hrr", "batter_home_runs": "home_runs", "batter_stolen_bases": "stolen_bases", "pitcher_outs": "outs"}
+                  "player_points": "points", "player_rebounds": "rebounds", "player_assists": "assists", "player_threes": "threes",
+                  "player_points_rebounds_assists": "pra"}
 
 
 def odds_api(sport, book_lines, games, wanted_games):
