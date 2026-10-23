@@ -26,7 +26,7 @@ import sys
 import time
 import unicodedata
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import requests
 
@@ -795,6 +795,168 @@ def analyse(p, book_lines, best_be):
 
 
 # --------------------------------------------------------------------------------------
+# Track record: every recommended pick is saved before kick-off / tip-off, then graded
+# against the ESPN box score once the game is over. History lives inside props.json
+# (the workflow re-downloads the last published copy at the start of every run).
+# --------------------------------------------------------------------------------------
+ESPN = "https://site.api.espn.com/apis/site/v2/sports"
+ESPN_PATH = {"NFL": "football/nfl", "CFB": "football/college-football", "NBA": "basketball/nba"}
+GRADE_AFTER_H = {"NFL": 4.5, "CFB": 4.5, "NBA": 3.5}
+GIVE_UP_H = 72
+GRADEABLE = {
+    "NFL": {"pass_yds", "pass_tds", "pass_att", "pass_cmp", "ints", "rush_yds", "rush_att", "rec_yds", "receptions",
+            "rush_rec_yds", "pass_rush_yds", "anytime_td", "long_rec", "long_rush", "fg_made", "kick_pts", "tackles", "sacks"},
+    "NBA": {"points", "rebounds", "assists", "threes", "steals", "blocks", "turnovers", "pra", "pts_reb", "pts_ast", "reb_ast", "stl_blk"},
+}
+GRADEABLE["CFB"] = GRADEABLE["NFL"]
+
+
+def parse_t(s):
+    try:
+        return datetime.fromisoformat(str(s)[:19]).replace(tzinfo=timezone.utc)
+    except Exception:
+        return None
+
+
+def _num(x):
+    try:
+        return float(x)
+    except Exception:
+        return None
+
+
+def _split(x, i):
+    """'6-10' / '29/40' -> number at position i."""
+    m = re.match(r"\s*(\d+)\s*[-/]\s*(\d+)", str(x or ""))
+    return float(m.group(i + 1)) if m else None
+
+
+def espn_box(sport, event_id, cache):
+    if event_id in cache:
+        return cache[event_id]
+    d = get(f"{ESPN}/{ESPN_PATH[sport]}/summary", params={"event": event_id}) or {}
+    out = {}
+    for team in d.get("boxscore", {}).get("players", []):
+        for cat in team.get("statistics", []):
+            labels = cat.get("labels") or cat.get("keys") or []
+            name = cat.get("name") or "box"
+            for a in cat.get("athletes", []):
+                nm = norm_name((a.get("athlete") or {}).get("displayName", ""))
+                if nm:
+                    out.setdefault(nm, {})[name] = dict(zip(labels, a.get("stats") or []))
+    cache[event_id] = out
+    return out
+
+
+def espn_day(sport, day, sb_cache, box_cache):
+    """All players from completed games of one sport on one (US) date -> (boxes, all_games_final)."""
+    key = (sport, day)
+    if key not in sb_cache:
+        params = {"dates": day.replace("-", "")}
+        if sport == "CFB":
+            params.update({"groups": "80", "limit": "400"})
+        sb = get(f"{ESPN}/{ESPN_PATH[sport]}/scoreboard", params=params) or {}
+        players, final = {}, True
+        for ev in sb.get("events", []):
+            if not ((ev.get("status") or {}).get("type") or {}).get("completed"):
+                final = False
+                continue
+            players.update(espn_box(sport, ev["id"], box_cache))
+        sb_cache[key] = (players, final and bool(sb.get("events")))
+    return sb_cache[key]
+
+
+def actual_value(sport, key, st):
+    """Final stat for a player, None if it cannot be graded, 'dnp' if he did not play."""
+    if sport == "NBA":
+        r = next((v for v in st.values() if "PTS" in v), None)
+        if not r or str(r.get("MIN", "")).strip() in ("", "0", "--", "DNP"):
+            return "dnp"
+        P, R, A = _num(r.get("PTS")), _num(r.get("REB")), _num(r.get("AST"))
+        S, B = _num(r.get("STL")), _num(r.get("BLK"))
+        vals = {"points": P, "rebounds": R, "assists": A, "threes": _split(r.get("3PT"), 0), "steals": S, "blocks": B,
+                "turnovers": _num(r.get("TO"))}
+        try:
+            vals.update({"pra": P + R + A, "pts_reb": P + R, "pts_ast": P + A, "reb_ast": R + A, "stl_blk": S + B})
+        except TypeError:
+            pass
+        return vals.get(key)
+    pa, ru, rc = st.get("passing", {}), st.get("rushing", {}), st.get("receiving", {})
+    de, ki = st.get("defensive", {}), st.get("kicking", {})
+
+    def z(d, k):
+        v = _num(d.get(k))
+        return v if v is not None else 0.0
+    vals = {"pass_yds": z(pa, "YDS"), "pass_tds": z(pa, "TD"), "ints": z(pa, "INT"),
+            "pass_cmp": _split(pa.get("C/ATT"), 0) or 0.0, "pass_att": _split(pa.get("C/ATT"), 1) or 0.0,
+            "rush_yds": z(ru, "YDS"), "rush_att": z(ru, "CAR"), "long_rush": z(ru, "LONG"),
+            "rec_yds": z(rc, "YDS"), "receptions": z(rc, "REC"), "long_rec": z(rc, "LONG"),
+            "anytime_td": z(ru, "TD") + z(rc, "TD"), "tackles": z(de, "TOT"), "sacks": z(de, "SACKS"),
+            "fg_made": _split(ki.get("FG"), 0) or 0.0, "kick_pts": z(ki, "PTS")}
+    vals["rush_rec_yds"] = vals["rush_yds"] + vals["rec_yds"]
+    vals["pass_rush_yds"] = vals["pass_yds"] + vals["rush_yds"]
+    return vals.get(key)
+
+
+def update_track(track, all_props, now):
+    track = track or {}
+    pending = track.get("pending") or {}
+    rec = track.get("record") or {}
+    recent = track.get("recent") or []
+    track.setdefault("since", now.date().isoformat())
+
+    # 1) save / refresh every recommendation for games that have not started yet
+    for p in all_props:
+        t = parse_t(p.get("start"))
+        if not p.get("pick") or not t or t <= now or " + " in p.get("player", "") \
+                or p.get("statKey") not in GRADEABLE.get(p["sport"], ()):
+            continue
+        pending[f"{p['sport']}|{p['id']}"] = {"s": p["sport"], "pl": p["player"], "st": p.get("stat"), "k": p["statKey"],
+                                              "line": p["line"], "pick": p["pick"], "pp": p.get("pPick"),
+                                              "v": p.get("value"), "t": p["start"][:19]}
+
+    # 2) grade finished games
+    sb_cache, box_cache, graded = {}, {}, 0
+    for pid, e in list(pending.items()):
+        t = parse_t(e["t"])
+        if not t or now < t + timedelta(hours=GRADE_AFTER_H.get(e["s"], 4)):
+            continue
+        days = {(t - timedelta(hours=6)).date().isoformat(), t.date().isoformat()}
+        val, final = None, True
+        for day in sorted(days):
+            players, fin = espn_day(e["s"], day, sb_cache, box_cache)
+            final = final and fin
+            st = players.get(norm_name(e["pl"]))
+            if st is not None:
+                val = actual_value(e["s"], e["k"], st)
+                break
+        if val is None and not (final and now > t + timedelta(hours=12)) and now < t + timedelta(hours=GIVE_UP_H):
+            continue  # box score not posted yet - try again next run
+        del pending[pid]
+        r = rec.setdefault(e["s"], {"w": 0, "l": 0, "push": 0, "void": 0, "vw": 0, "vl": 0})
+        if val is None or val == "dnp":
+            r["void"] += 1
+            continue
+        res = "push" if val == e["line"] else ("w" if (val > e["line"]) == (e["pick"] == "MORE") else "l")
+        r[res] += 1
+        if res != "push" and (e.get("v") or 0) > 0:
+            r["v" + res] += 1
+        graded += 1
+        recent.append([e["s"], e["pl"], e["st"], e["line"], e["pick"], val, res, e["t"][:10]])
+    track.update({"pending": pending, "record": rec, "recent": recent[-300:]})
+    log(f"[track] graded {graded}, pending {len(pending)}")
+    return track
+
+
+def load_prev():
+    try:
+        with open("data/props.json") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+# --------------------------------------------------------------------------------------
 def main():
     t0 = time.time()
     cache = os.environ.get("DEV_CACHE")
@@ -889,6 +1051,12 @@ def finish(t0, all_props, payouts_by_sport, book_lines, games):
         for k in ("avgLabel", "homeTeam", "awayTeam", "pickGroupId"):
             p.pop(k, None)
 
+    prev = load_prev()
+    track = prev.get("track")
+    try:
+        track = update_track(track, all_props, datetime.now(timezone.utc))
+    except Exception as e:
+        log(f"[track] failed: {e}")
     out = {
         "updated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "payouts": pay,
@@ -900,10 +1068,14 @@ def finish(t0, all_props, payouts_by_sport, book_lines, games):
         "sources": ["DraftKings Pick6"] + sorted({b["book"] for v in book_lines.values() for b in v}),
         "log": LOG[-60:],
         "runtimeSec": round(time.time() - t0, 1),
+        "track": track,
     }
     os.makedirs("data", exist_ok=True)
-    if not all_props and os.path.exists("data/props.json"):
+    if not all_props and prev:
         log("No Pick6 props scraped - keeping previous data file")
+        prev["track"] = track
+        with open("data/props.json", "w") as f:
+            json.dump(prev, f, separators=(",", ":"))
         sys.exit(0)
     with open("data/props.json", "w") as f:
         json.dump(out, f, separators=(",", ":"))

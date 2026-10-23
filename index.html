@@ -57,6 +57,12 @@ tr.r:hover{background:#171c28;cursor:pointer}
 #slip{position:fixed;bottom:0;left:0;right:0;background:var(--panel2);border-top:1px solid var(--line);padding:10px 16px;z-index:10;display:none}
 #slip .in{max-width:1300px;margin:0 auto;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
 .disc{color:var(--mute);font-size:11px;margin-top:20px;line-height:1.5}
+.track{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-bottom:14px}
+.trk{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.trk .sp{color:var(--mute);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.trk .pc{font-size:26px;font-weight:800;line-height:1.15}
+.trk .rec{color:var(--mute);font-size:12px}
+.track-note{grid-column:1/-1;color:var(--mute);font-size:11px;margin-top:-2px}
 @media(max-width:760px){.hide-m{display:none}td,th{padding:6px 4px}.pl img{width:28px;height:28px}}
 </style>
 </head>
@@ -66,6 +72,7 @@ tr.r:hover{background:#171c28;cursor:pointer}
   <div class="sub" id="src"></div>
 </header>
 <div class="wrap">
+  <div class="track" id="track"></div>
   <div class="tabs" id="sports"></div>
   <div class="filters">
     <input type="search" id="q" placeholder="Search player / team…">
@@ -109,7 +116,17 @@ const fmtT=s=>{if(!s)return'';const d=new Date(s);return d.toLocaleString([], {w
 
 fetch('data/props.json?'+Date.now()).then(r=>r.json()).then(d=>{D=d;init()}).catch(e=>{$('upd').textContent='Could not load data/props.json — the scraper has not run yet.'});
 
+function renderTrack(){
+  const T=(D.track||{}),R=T.record||{},P=Object.values(T.pending||{});
+  const sports=[...new Set([...Object.keys(R),...D.props.map(p=>p.sport)])].filter(s=>s!=='MLB');
+  const lab=s=>s==='CFB'?'NCAAF':s, col=x=>x==null?'var(--txt)':x>=.55?'var(--acc)':x>=.5?'var(--warn)':'var(--bad)';
+  const cards=sports.map(s=>{const r=R[s]||{},n=(r.w||0)+(r.l||0),pc=n?r.w/n:null,vn=(r.vw||0)+(r.vl||0),pend=P.filter(e=>e.s===s).length;
+    return `<div class="trk"><div class="sp">${lab(s)} · picks right</div><div class="pc" style="color:${col(pc)}">${pc==null?'–':(pc*100).toFixed(1)+'%'}</div>`+
+    `<div class="rec">${n?`${r.w}-${r.l}${r.push?'-'+r.push:''} (${n} graded)`:'No graded picks yet'}${vn?` · +value picks ${(r.vw/vn*100).toFixed(1)}% (${vn})`:''}${pend?` · ${pend} pending`:''}</div></div>`}).join('');
+  $('track').innerHTML=cards+`<div class="track-note">Every recommended MORE/LESS is locked in at its last pre-game line and graded against the final box score (ESPN). Pushes and DNPs don't count.${T.since?' Tracking since '+T.since+'.':''}</div>`;
+}
 function init(){
+  renderTrack();
   $('upd').textContent='Updated '+new Date(D.updated).toLocaleString()+' · '+D.props.length+' Pick6 props';
   $('src').textContent='Odds: '+D.sources.join(' · ');
   $('be').textContent=Object.entries(D.payouts).map(([n,v])=>`${n}-pick ${Object.values(v.payouts)[0]}x → ${(v.breakeven*100).toFixed(1)}%`).join(', ');
