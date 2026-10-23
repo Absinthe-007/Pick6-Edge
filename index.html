@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pick6 Edge</title>
+<style>
+:root{--bg:#0d0f14;--panel:#151922;--panel2:#1b2030;--line:#262c3d;--txt:#e7eaf2;--mute:#8b93a7;--acc:#53d769;--more:#3fb950;--less:#f0883e;--warn:#e3b341;--bad:#f85149;--blue:#58a6ff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{padding:16px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+h1{margin:0;font-size:20px}h1 span{color:var(--acc)}
+.sub{color:var(--mute);font-size:12px}
+.wrap{max-width:1300px;margin:0 auto;padding:12px 16px 80px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.tab{background:var(--panel);border:1px solid var(--line);color:var(--txt);padding:7px 14px;border-radius:999px;cursor:pointer;font-weight:600}
+.tab.on{background:var(--acc);color:#06210c;border-color:var(--acc)}
+.filters{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin-bottom:10px}
+select,input[type=search],input[type=number]{width:100%;background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px}
+label.chk{display:flex;gap:6px;align-items:center;color:var(--mute);font-size:13px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px}
+.stats{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
+.pill{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--mute)}
+.pill b{color:var(--txt)}
+table{width:100%;border-collapse:collapse}
+th{position:sticky;top:0;background:var(--panel2);color:var(--mute);font-weight:600;font-size:12px;text-align:left;padding:8px;border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap}
+td{padding:8px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr.r:hover{background:#171c28;cursor:pointer}
+.pl{display:flex;gap:8px;align-items:center}
+.pl img{width:34px;height:34px;border-radius:50%;background:#222;object-fit:cover}
+.pl .n{font-weight:600}.pl .m{color:var(--mute);font-size:12px}
+.chip{display:inline-block;padding:3px 9px;border-radius:999px;font-weight:700;font-size:12px}
+.MORE{background:rgba(63,185,80,.15);color:var(--more)}.LESS{background:rgba(240,136,62,.15);color:var(--less)}
+.bar{height:6px;border-radius:3px;background:#2a3042;overflow:hidden;width:90px;margin-top:4px}
+.bar i{display:block;height:100%}
+.pos{color:var(--more)}.neg{color:var(--bad)}.mute{color:var(--mute)}
+.tag{font-size:10px;padding:2px 6px;border-radius:4px;background:#2a3042;color:var(--mute);margin-left:4px}
+.tag.boost{background:rgba(227,179,65,.15);color:var(--warn)}
+.tag.mkt{background:rgba(88,166,255,.15);color:var(--blue)}
+.add{background:none;border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:4px 8px;cursor:pointer}
+.add.on{background:var(--acc);color:#06210c}
+.more-btn{display:block;margin:14px auto;background:var(--panel);color:var(--txt);border:1px solid var(--line);padding:10px 20px;border-radius:8px;cursor:pointer}
+#drawer{position:fixed;top:0;right:0;height:100%;width:min(560px,100%);background:var(--panel);border-left:1px solid var(--line);transform:translateX(100%);transition:.2s;overflow:auto;z-index:20;padding:18px}
+#drawer.open{transform:none}
+#drawer h2{margin:0 0 4px;font-size:18px}
+#drawer h3{font-size:13px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em;margin:18px 0 8px}
+.x{float:right;background:none;border:0;color:var(--mute);font-size:22px;cursor:pointer}
+.big{display:flex;gap:10px;margin-top:12px}
+.big div{flex:1;background:var(--panel2);border-radius:10px;padding:12px;text-align:center}
+.big .v{font-size:24px;font-weight:800}
+.glog{display:flex;align-items:flex-end;gap:6px;height:120px;border-bottom:1px solid var(--line);position:relative;padding-top:10px}
+.glog .c{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+.glog .c i{width:100%;border-radius:4px 4px 0 0}
+.glog .c small{font-size:10px;color:var(--mute);margin-top:3px;white-space:nowrap}
+.glog .ln{position:absolute;left:0;right:0;border-top:2px dashed var(--warn)}
+.mini td,.mini th{padding:6px;font-size:12px}
+.news{background:var(--panel2);padding:10px;border-radius:8px;font-size:13px}
+#slip{position:fixed;bottom:0;left:0;right:0;background:var(--panel2);border-top:1px solid var(--line);padding:10px 16px;z-index:10;display:none}
+#slip .in{max-width:1300px;margin:0 auto;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.disc{color:var(--mute);font-size:11px;margin-top:20px;line-height:1.5}
+@media(max-width:760px){.hide-m{display:none}td,th{padding:6px 4px}.pl img{width:28px;height:28px}}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Pick6 <span>Edge</span></h1><div class="sub" id="upd">Loading…</div></div>
+  <div class="sub" id="src"></div>
+</header>
+<div class="wrap">
+  <div class="tabs" id="sports"></div>
+  <div class="filters">
+    <input type="search" id="q" placeholder="Search player / team…">
+    <select id="slate"></select>
+    <select id="game"></select>
+    <select id="stat"></select>
+    <select id="sort">
+      <option value="value">Sort: Best value</option>
+      <option value="prob">Sort: Highest probability</option>
+      <option value="start">Sort: Start time</option>
+      <option value="player">Sort: Player A–Z</option>
+    </select>
+    <label class="chk"><input type="checkbox" id="std" checked> Standard 1x lines only</label>
+    <label class="chk"><input type="checkbox" id="mkt" checked> Has sportsbook odds</label>
+    <label class="chk">Min prob % <input type="number" id="minp" value="0" min="0" max="100" style="width:64px;padding:4px"></label>
+  </div>
+  <div class="stats" id="sum"></div>
+  <div style="overflow-x:auto">
+  <table>
+    <thead><tr>
+      <th>Player</th><th>Stat</th><th>Line</th><th>Play</th><th class="hide-m">More / Less</th><th class="hide-m">L5 hit</th><th class="hide-m">Proj</th><th>Where to play</th><th></th>
+    </tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+  </div>
+  <button class="more-btn" id="moreBtn">Show more</button>
+  <div class="disc">
+    <b>How it works.</b> Lines come from DraftKings Pick6. Each prop's probability blends (a) the no-vig sportsbook price (BetRivers/Kambi, Bovada, and any books from The Odds API if a key is set), shifted to the Pick6 line with a Normal model for yardage-type stats and a Poisson model for count stats, and (b) the player's season average + last 5 games from DraftKings. <b>Value</b> is your edge versus the Pick6 break-even per pick (<span id="be"></span>); multiplier-boosted or discounted picks assume the multiplier scales your payout. <b>Where to play</b> ranks Pick6 vs each sportsbook by expected profit per $1 on the recommended side.
+    Models are estimates, not guarantees. Bet responsibly; 21+. If you or someone you know has a gambling problem, call 1-800-GAMBLER.
+  </div>
+</div>
+<aside id="drawer"></aside>
+<div id="slip"><div class="in"><div id="slipTxt"></div><div><button class="add" id="slipClear">Clear slip</button></div></div></div>
+<script>
+let D=null,SPORT='ALL',LIMIT=150,SORTCOL=null;const SLIP=new Map();
+const $=id=>document.getElementById(id);
+const pct=x=>x==null?'–':(x*100).toFixed(1)+'%';
+const sgn=x=>x==null?'–':(x>0?'+':'')+(x*100).toFixed(1)+'%';
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtT=s=>{if(!s)return'';const d=new Date(s);return d.toLocaleString([], {weekday:'short',hour:'numeric',minute:'2-digit'})};
+
+fetch('data/props.json?'+Date.now()).then(r=>r.json()).then(d=>{D=d;init()}).catch(e=>{$('upd').textContent='Could not load data/props.json — the scraper has not run yet.'});
+
+function init(){
+  $('upd').textContent='Updated '+new Date(D.updated).toLocaleString()+' · '+D.props.length+' Pick6 props';
+  $('src').textContent='Odds: '+D.sources.join(' · ');
+  $('be').textContent=Object.entries(D.payouts).map(([n,v])=>`${n}-pick ${Object.values(v.payouts)[0]}x → ${(v.breakeven*100).toFixed(1)}%`).join(', ');
+  const sports=['ALL',...new Set(D.props.map(p=>p.sport))];
+  $('sports').innerHTML=sports.map(s=>`<button class="tab ${s===SPORT?'on':''}" data-s="${s}">${s==='ALL'?'All':s==='CFB'?'NCAAF':s}</button>`).join('');
+  $('sports').onclick=e=>{const s=e.target.dataset.s;if(!s)return;SPORT=s;LIMIT=150;init();};
+  fillSelects();
+  ['q','slate','game','stat','sort','std','mkt','minp'].forEach(id=>$(id).oninput=()=>{LIMIT=150;if(id==='slate')fillSelects(true);render()});
+  $('moreBtn').onclick=()=>{LIMIT+=150;render()};
+  $('slipClear').onclick=()=>{SLIP.clear();render();renderSlip()};
+  render();
+}
+function base(){return D.props.filter(p=>SPORT==='ALL'||p.sport===SPORT)}
+function fillSelects(keepSlate){
+  const b=base();
+  if(!keepSlate){const sl=[...new Set(b.map(p=>p.sport+' · '+p.slate))];$('slate').innerHTML='<option value="">All slates</option>'+sl.map(s=>`<option>${esc(s)}</option>`).join('');}
+  const s=$('slate').value;const b2=b.filter(p=>!s||p.sport+' · '+p.slate===s);
+  const games=[...new Set(b2.map(p=>p.game))].sort();$('game').innerHTML='<option value="">All games</option>'+games.map(g=>`<option>${esc(g)}</option>`).join('');
+  const stats=[...new Set(b2.map(p=>p.stat))].sort();$('stat').innerHTML='<option value="">All stats</option>'+stats.map(g=>`<option>${esc(g)}</option>`).join('');
+}
+function filtered(){
+  const q=$('q').value.toLowerCase().trim(),sl=$('slate').value,g=$('game').value,st=$('stat').value,std=$('std').checked,mk=$('mkt').checked,minp=(+$('minp').value||0)/100;
+  let a=base().filter(p=>p.pick&&(!sl||p.sport+' · '+p.slate===sl)&&(!g||p.game===g)&&(!st||p.stat===st)&&(!std||!p.boosted)&&(!mk||p.books.length)&&(p.pPick>=minp)&&(!q||(p.player+' '+p.team+' '+p.opp+' '+p.game).toLowerCase().includes(q)));
+  const so=$('sort').value;
+  a.sort(so==='prob'?(x,y)=>y.pPick-x.pPick:so==='start'?(x,y)=>x.start.localeCompare(y.start)||y.value-x.value:so==='player'?(x,y)=>x.player.localeCompare(y.player):(x,y)=>y.value-x.value);
+  return a;
+}
+function render(){
+  if(!D)return;const a=filtered();
+  const pos=a.filter(p=>p.value>0).length,mk=a.filter(p=>p.books.length).length;
+  $('sum').innerHTML=`<span class="pill"><b>${a.length}</b> props</span><span class="pill"><b class="pos">${pos}</b> beat break-even</span><span class="pill"><b>${mk}</b> with sportsbook odds</span><span class="pill">Break-even <b>${(D.bestBreakeven*100).toFixed(1)}%</b> per pick</span>`;
+  $('rows').innerHTML=a.slice(0,LIMIT).map(row).join('')||'<tr><td colspan="9" class="mute">No props match.</td></tr>';
+  $('moreBtn').style.display=a.length>LIMIT?'block':'none';
+  $('rows').querySelectorAll('tr.r').forEach(tr=>tr.onclick=e=>{if(e.target.closest('.add')){toggleSlip(+tr.dataset.id);return}open(+tr.dataset.id)});
+}
+function row(p){
+  const pl=D.players[p.pk]||{},w=p.where[0]||[],mult=p.pick==='MORE'?p.moreMult:p.lessMult;
+  const tags=(p.promo?`<span class="tag boost">${esc(p.promo)}</span>`:'')+(p.boosted?`<span class="tag boost">${mult}x</span>`:'')+(p.books.length?`<span class="tag mkt">${p.books.length} book${p.books.length>1?'s':''}</span>`:'<span class="tag">stats only</span>');
+  const hit=p.hitL5?`${p.hitL5[0]}/${p.hitL5[1]}`:'–';
+  return `<tr class="r" data-id="${p.id}">
+  <td><div class="pl"><img loading="lazy" src="${esc(pl.img||'')}" onerror="this.style.visibility='hidden'"><div><div class="n">${esc(p.player)}</div><div class="m">${esc(p.pos)} ${esc(p.team)} vs ${esc(p.opp)} · ${fmtT(p.start)}</div></div></div></td>
+  <td>${esc(p.stat)}${tags}</td><td><b>${p.line}</b></td>
+  <td><span class="chip ${p.pick}">${p.pick} ${pct(p.pPick)}</span><div class="${p.value>0?'pos':'neg'}" style="font-size:12px">${sgn(p.value)} value</div></td>
+  <td class="hide-m">${pct(p.pMore)} / ${p.pLess==null?'–':pct(p.pLess)}<div class="bar"><i style="width:${(p.pMore*100).toFixed(0)}%;background:var(--more)"></i></div></td>
+  <td class="hide-m">${hit}</td><td class="hide-m">${p.proj??'–'}</td>
+  <td><b>${esc(w[0]||'')}</b><div class="mute" style="font-size:12px">${w[1]??''} @ ${esc(w[2]??'')}</div></td>
+  <td><button class="add ${SLIP.has(p.id)?'on':''}">${SLIP.has(p.id)?'✓':'+'}</button></td></tr>`;
+}
+function open(id){
+  const p=D.props.find(x=>x.id===id);if(!p)return;const pl=D.players[p.pk]||{};
+  const vals=p.log.map(g=>g[2]),mx=Math.max(p.line*1.4,...vals,1);
+  const glog=p.log.length?`<div class="glog"><div class="ln" style="bottom:${p.line/mx*100}%"></div>${p.log.map(g=>`<div class="c"><span style="font-size:11px">${g[2]}</span><i style="height:${Math.max(g[2]/mx*100,2)}%;background:${g[2]>p.line?'var(--more)':'var(--less)'}"></i><small>${esc(g[0])}</small></div>`).join('')}</div><div class="mute" style="font-size:12px;margin-top:4px">Dashed line = Pick6 line ${p.line}. Season avg <b>${p.seasonAvg??'–'}</b> · L5 avg <b>${p.l5Avg??'–'}</b> · Model projection <b>${p.proj??'–'}</b></div>`:'<div class="mute">No game log available.</div>';
+  const where=`<table class="mini"><tr><th>Venue</th><th>Line</th><th>Price</th><th>Win prob</th><th>EV / $1</th></tr>${p.where.map(w=>`<tr><td>${esc(w[0])}</td><td>${w[1]}</td><td>${esc(w[2])}</td><td>${pct(w[3])}</td><td class="${w[4]>0?'pos':'neg'}">${sgn(w[4])}</td></tr>`).join('')}</table><div class="mute" style="font-size:11px;margin-top:4px">For Pick6 rows, EV is per-pick edge vs the ${(D.bestBreakeven*100).toFixed(1)}% break-even.</div>`;
+  const books=p.books.length?`<table class="mini"><tr><th>Book</th><th>Line</th><th>Over</th><th>Under</th><th>Fair P(over) at ${p.line}</th></tr>${p.books.map(b=>`<tr><td>${esc(b[0])}</td><td>${b[1]}</td><td>${esc(b[2]??'–')}</td><td>${esc(b[3]??'–')}</td><td>${pct(b[4])}</td></tr>`).join('')}</table>`:'<div class="mute">No matching sportsbook prop found — probability is from stats only.</div>';
+  const lad=p.ladder.length?`<table class="mini"><tr><th>Alt line (MORE)</th><th>Multiplier</th><th>Hit prob</th><th>Value</th></tr>${p.ladder.map(a=>`<tr><td>${a[0]}</td><td>${a[1]}x</td><td>${pct(a[2])}</td><td class="${a[3]>0?'pos':'neg'}">${sgn(a[3])}</td></tr>`).join('')}</table>`:'';
+  const tb=(D.tables[p.mt]||[]).map(t=>`<div class="mute" style="font-size:12px;margin-bottom:4px">${esc(t.caption)}</div><table class="mini"><tr>${t.headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr>${t.rows.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</table>`).join('');
+  const g=D.games[p.gk];
+  const gl=g?`<table class="mini"><tr><th>Book</th><th>Moneyline</th><th>Spread</th><th>Total</th></tr>${Object.entries(g.books).map(([b,v])=>`<tr><td>${esc(b)}</td><td>${v.ml?Object.entries(v.ml).map(([t,o])=>esc(t)+' '+esc(o)).join('<br>'):'–'}</td><td>${v.spread?Object.entries(v.spread).map(([t,o])=>esc(t)+' '+(o[0]>0?'+':'')+o[0]+' ('+esc(o[1])+')').join('<br>'):'–'}</td><td>${v.total?'O/U '+v.total[0]+'<br>'+Object.entries(v.total[1]).map(([k,o])=>esc(k)+' '+esc(o)).join(' · '):'–'}</td></tr>`).join('')}</table>`:'<div class="mute">No game lines matched.</div>';
+  $('drawer').innerHTML=`<button class="x" onclick="closeD()">×</button>
+  <div class="pl"><img src="${esc(pl.img||'')}" style="width:56px;height:56px" onerror="this.style.visibility='hidden'"><div><h2>${esc(p.player)}</h2><div class="mute">${esc(p.pos)} · ${esc(p.team)} vs ${esc(p.opp)} · ${esc(p.game)} · ${fmtT(p.start)}</div></div></div>
+  <div style="margin-top:10px"><b>${esc(p.stat)}</b> — Pick6 line <b>${p.line}</b> ${p.moreMult!=null?`<span class="tag">MORE ${p.moreMult}x</span>`:''}${p.lessMult!=null?`<span class="tag">LESS ${p.lessMult}x</span>`:'<span class="tag">MORE only</span>'}</div>
+  <div class="big"><div><div class="mute">P(MORE)</div><div class="v pos">${pct(p.pMore)}</div></div><div><div class="mute">P(LESS)</div><div class="v" style="color:var(--less)">${p.pLess==null?'n/a':pct(p.pLess)}</div></div><div><div class="mute">Play</div><div class="v"><span class="chip ${p.pick}">${p.pick}</span></div><div class="${p.value>0?'pos':'neg'}">${sgn(p.value)}</div></div></div>
+  <div class="mute" style="font-size:12px;margin-top:6px">Basis: ${esc(p.basis)} · market ${pct(p.pMarket)} · stats ${pct(p.pStats)}</div>
+  <h3>Where to play</h3>${where}
+  ${p.bestAlt?`<div class="news" style="margin-top:8px">💡 Better on the Pick6 alt ladder: MORE ${p.bestAlt.line} at ${p.bestAlt.mult}x (${pct(p.bestAlt.p)} hit, ${sgn(p.bestAlt.value)} value)</div>`:''}
+  <h3>Last games vs line</h3>${glog}
+  <h3>Sportsbook odds</h3>${books}
+  ${lad?`<h3>Pick6 alt ladder</h3>${lad}`:''}
+  <h3>Matchup</h3>${tb||'<div class="mute">No matchup data.</div>'}
+  <h3>Game lines</h3>${gl}
+  ${pl.news?`<h3>Latest news (${esc(pl.news.date)})</h3><div class="news"><b>${esc(pl.news.summary)}</b><br><span class="mute">${esc(pl.news.details)}</span></div>`:''}
+  <div style="margin-top:16px"><button class="add ${SLIP.has(p.id)?'on':''}" onclick="toggleSlip(${p.id});open(${p.id})">${SLIP.has(p.id)?'✓ In slip':'+ Add to slip'}</button></div>`;
+  $('drawer').classList.add('open');
+}
+function closeD(){$('drawer').classList.remove('open')}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeD()});
+function toggleSlip(id){SLIP.has(id)?SLIP.delete(id):SLIP.set(id,true);render();renderSlip()}
+function renderSlip(){
+  const ps=[...SLIP.keys()].map(id=>D.props.find(p=>p.id===id)).filter(Boolean);
+  if(!ps.length){$('slip').style.display='none';return}
+  $('slip').style.display='block';const n=ps.length;
+  const probs=ps.map(p=>p.pPick),mults=ps.map(p=>(p.pick==='MORE'?p.moreMult:p.lessMult)||1);
+  const pkg=D.payouts[n];let txt=`<b>${n}-pick slip</b> · all hit ${pct(probs.reduce((a,b)=>a*b,1))}`;
+  if(pkg){
+    // exact distribution of correct picks (independent picks)
+    let dist=[1];probs.forEach(p=>{const nd=Array(dist.length+1).fill(0);dist.forEach((v,k)=>{nd[k]+=v*(1-p);nd[k+1]+=v*p});dist=nd});
+    const boost=mults.reduce((a,b)=>a*b,1);let ev=0;
+    Object.entries(pkg.payouts).forEach(([k,m])=>{ev+=dist[+k]*m*(+k===n?boost:1)});
+    txt+=` · payout ${Object.entries(pkg.payouts).map(([k,m])=>k+'/'+n+' '+m+'x').join(', ')}${boost!==1?` (×${boost.toFixed(2)} multipliers)`:''} · <b class="${ev>1?'pos':'neg'}">EV ${ev>1?'+':''}${((ev-1)*100).toFixed(1)}%</b>`;
+  } else txt+=' · Pick6 needs 2–8 picks';
+  const teams=new Set(ps.map(p=>p.team));if(teams.size<2&&n>1)txt+=' · <span class="neg">needs 2+ teams</span>';
+  $('slipTxt').innerHTML=txt+'<br><span class="mute" style="font-size:12px">'+ps.map(p=>esc(p.player)+' '+p.pick+' '+p.line+' '+esc(p.stat)).join(' · ')+'</span>';
+}
+</script>
+</body>
+</html>
