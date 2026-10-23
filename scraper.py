@@ -776,11 +776,13 @@ def analyse(p, book_lines, best_be):
     best_alt = max(lad, key=lambda x: x["value"], default=None)
     p["bestAlt"] = best_alt if best_alt and best_alt["value"] > p["value"] else None
 
-    # where to play: Pick6 vs each book on the recommended side (score = expected profit per $1)
+    # where to play: DraftKings only - Pick6 (main + alt line) and the DraftKings sportsbook when The Odds API supplies it
     where = [{"venue": "DK Pick6", "line": line, "price": f"{mult}x", "p": round(p_side, 3), "score": round(val, 3)}]
     if p["bestAlt"]:
         where.append({"venue": "DK Pick6 (alt)", "line": best_alt["line"], "price": f"{best_alt['mult']}x", "p": best_alt["p"], "score": best_alt["value"]})
     for b in books:
+        if "draftkings" not in b["book"].lower():  # other books feed the probability but are never a place to play
+            continue
         price = b["over"] if side == "MORE" else b["under"]
         if price is None:
             continue
