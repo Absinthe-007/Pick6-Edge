@@ -1,0 +1,55 @@
+name: Update Pick6 Edge
+
+on:
+  schedule:
+    - cron: "7 */2 * * *"   # every 2 hours
+  workflow_dispatch:         # "Run workflow" button
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Start from last published data (fallback if a source is down)
+        run: |
+          mkdir -p data
+          curl -fsSL "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/data/props.json" -o data/props.json || true
+      - name: Scrape Pick6 + sportsbooks and run model
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: python scraper.py
+      - name: Build site
+        run: |
+          mkdir -p _site/data
+          cp index.html _site/
+          cp data/props.json _site/data/
+          touch _site/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
