@@ -345,8 +345,10 @@ def breakevens(payout_packages):
 # --------------------------------------------------------------------------------------
 def pick6_sport(sport):
     root, got = None, None
-    for attempt in range(4):  # Pick6 sometimes falls back to another sport's page - retry
-        txt = get(f"{P6}/_root.data", params={"sport": sport}, as_text=True)
+    pill = {"NFL": "1-1", "NBA": "4-4", "CFB": "5-5"}.get(sport)
+    for attempt in range(6):  # Pick6 sometimes falls back to another sport's page - retry (alternating URL styles)
+        params = {"sport": sport} if attempt % 2 == 0 else {"sport": sport, "pill": pill}
+        txt = get(f"{P6}/_root.data", params=params, as_text=True)
         try:
             r = turbo_decode(txt)["routes/_homeShared"]["data"] if txt else None
         except Exception as e:
@@ -371,7 +373,7 @@ def pick6_sport(sport):
         if pg == int(root.get("pickGroupId") or 0):
             cats = root["pickCardsResponse"].get("orderedPickCategoryIds")
         else:
-            t2 = get(f"{P6}/_root.data", params={"sport": sport, "pickGroup": pg}, as_text=True)
+            t2 = get(f"{P6}/_root.data", params={"sport": sport, "pickGroup": pg, "pill": pill}, as_text=True)
             try:
                 cats = turbo_decode(t2)["routes/_homeShared"]["data"]["pickCardsResponse"].get("orderedPickCategoryIds")
             except Exception:
@@ -752,6 +754,10 @@ def analyse(p, book_lines, best_be):
         return
     p_over = min(max(p_over, 0.005), 0.995)
     p["pMore"] = round(p_over, 3)
+    # expected stat ("what he's projected to get") implied by the blended probability at the Pick6 line
+    p["statProj"] = p["proj"]
+    exp = lam_from_over(p_over, line) if model_key in COUNT_STATS else line + sigma * phi_inv(p_over)
+    p["proj"] = round(max(exp, 0), 1)
     p["pLess"] = round(1 - p_over, 3) if p.get("lessMult") else None
 
     # value vs Pick6 break-even, multiplier aware (1.0 = neutral pick)
@@ -948,6 +954,226 @@ def update_track(track, all_props, now):
     return track
 
 
+# --------------------------------------------------------------------------------------
+# ESPN player profiles: headshot, height, weight, age, school, experience, season averages,
+# recent games and the full history vs. tonight's opponent (current + 2 previous seasons).
+# --------------------------------------------------------------------------------------
+ESPN_WEB = "https://site.web.api.espn.com/apis/common/v3"
+ABBR_ALIAS = {"GSW": "GS", "NOP": "NO", "SAS": "SA", "WAS": "WSH", "UTA": "UTAH", "NYK": "NY", "PHO": "PHX", "JAC": "JAX", "LA": "LAR"}
+GL_MAP = {
+    "points": "points", "totalRebounds": "rebounds", "assists": "assists", "steals": "steals", "blocks": "blocks",
+    "turnovers": "turnovers", "minutes": "min", "threePointFieldGoalsMade-threePointFieldGoalsAttempted": "threes",
+    "passingYards": "pass_yds", "passingTouchdowns": "pass_tds", "completions": "pass_cmp", "passingAttempts": "pass_att",
+    "longPassing": "long_pass", "rushingYards": "rush_yds", "rushingAttempts": "rush_att", "rushingTouchdowns": "rush_td",
+    "longRushing": "long_rush", "receptions": "receptions", "receivingTargets": "targets", "receivingYards": "rec_yds",
+    "receivingTouchdowns": "rec_td", "longReception": "long_rec", "totalTackles": "tackles", "soloTackles": "solo",
+    "passesDefended": "pd", "fieldGoalsMade-fieldGoalAttempts": "fg_made", "totalKickingPoints": "kick_pts",
+}
+# columns shown in the player pop-up (key, label)
+SHOW_COLS = {
+    "NBA": [("min", "MIN"), ("points", "PTS"), ("rebounds", "REB"), ("assists", "AST"), ("threes", "3PM"),
+            ("steals", "STL"), ("blocks", "BLK"), ("turnovers", "TO"), ("pra", "PRA")],
+    "QB": [("pass_cmp", "CMP"), ("pass_att", "ATT"), ("pass_yds", "PYDS"), ("pass_tds", "PTD"), ("ints", "INT"),
+           ("rush_att", "CAR"), ("rush_yds", "RYDS"), ("rush_td", "RTD")],
+    "SKILL": [("receptions", "REC"), ("targets", "TGT"), ("rec_yds", "RECYD"), ("rec_td", "RECTD"), ("long_rec", "LNG"),
+              ("rush_att", "CAR"), ("rush_yds", "RYDS"), ("rush_td", "RTD")],
+    "DEF": [("tackles", "TKL"), ("solo", "SOLO"), ("sacks", "SACK"), ("ints", "INT"), ("pd", "PD")],
+    "K": [("fg_made", "FGM"), ("kick_pts", "PTS")],
+}
+
+
+def espn_seasons(sport, now):
+    if sport == "NBA":
+        y = now.year + 1 if now.month >= 9 else now.year
+    else:
+        y = now.year if now.month >= 7 else now.year - 1
+    return [y, y - 1, y - 2]
+
+
+def gl_parse(sport, g):
+    """ESPN gamelog JSON -> {eventId: {date, opp, oppName, at, res, score, season, s:{key:val}}}"""
+    names = g.get("names") or []
+    is_def = "totalTackles" in names
+    is_qb = "QBRating" in names
+    meta = g.get("events") or {}
+    out = {}
+    for st in g.get("seasonTypes") or []:
+        label = st.get("displayName", "")
+        if "preseason" in label.lower():
+            continue
+        for cat in st.get("categories") or []:
+            if cat.get("type") != "event":
+                continue
+            for e in cat.get("events") or []:
+                eid = e.get("eventId")
+                m = meta.get(eid) or {}
+                stats = {}
+                for n, v in zip(names, e.get("stats") or []):
+                    if n == "interceptions":
+                        stats["ints"] = _num(v)
+                    elif n == "sacks":
+                        stats["sacked" if is_qb else "sacks"] = _num(v)
+                    elif n in GL_MAP:
+                        k = GL_MAP[n]
+                        stats[k] = _split(v, 0) if "-" in n else _num(v)
+                if sport == "NBA":
+                    try:
+                        P, R, A, S, B = (stats.get(x) for x in ("points", "rebounds", "assists", "steals", "blocks"))
+                        stats.update({"pra": P + R + A, "pts_reb": P + R, "pts_ast": P + A, "reb_ast": R + A, "stl_blk": S + B})
+                    except TypeError:
+                        pass
+                else:
+                    if not is_def:
+                        stats["rush_rec_yds"] = (stats.get("rush_yds") or 0) + (stats.get("rec_yds") or 0)
+                        stats["pass_rush_yds"] = (stats.get("pass_yds") or 0) + (stats.get("rush_yds") or 0)
+                        stats["anytime_td"] = (stats.get("rush_td") or 0) + (stats.get("rec_td") or 0)
+                opp = m.get("opponent") or {}
+                out[eid] = {"date": (m.get("gameDate") or "")[:10], "opp": opp.get("abbreviation", ""), "oppName": opp.get("displayName", ""),
+                            "at": m.get("atVs", ""), "res": m.get("gameResult", ""), "score": m.get("score", ""), "season": label,
+                            "s": {k: (int(v) if isinstance(v, float) and v.is_integer() else v) for k, v in stats.items() if v is not None}}
+    return out
+
+
+def _team_match(full, abbr, t):
+    nf, nd = norm_name(full), norm_name(t.get("displayName", ""))
+    if nf and (nf == nd or (t.get("location") and norm_name(t["location"]) == nf)):
+        return True
+    a = ABBR_ALIAS.get(abbr, abbr)
+    return bool(a) and a.upper() == (t.get("abbreviation") or "").upper() and (not nf or nf.split()[-1] in nd.split() or nd.split()[0] in nf)
+
+
+def espn_enrich(all_props):
+    """Returns {pk: profile} and adds p['vs'] (history vs opponent for that stat) to each prop."""
+    now = datetime.now(timezone.utc)
+    profiles = {}
+    by_sport = {}
+    for p in all_props:
+        if " + " in p.get("player", "") or not p.get("dkIds"):
+            continue
+        g = p.get("game", "")
+        home_abbr = g.split("@")[-1].strip() if "@" in g else ""
+        p["_teamFull"] = p.get("homeTeam", "") if p.get("team") == home_abbr else p.get("awayTeam", "")
+        p["_oppFull"] = p.get("awayTeam", "") if p.get("team") == home_abbr else p.get("homeTeam", "")
+        by_sport.setdefault(p["sport"], {}).setdefault(str(p["dkIds"][0]), p)
+
+    for sport, players in by_sport.items():
+        path = ESPN_PATH[sport]
+        tl = get(f"{ESPN}/{path}/teams", params={"limit": 1000}) or {}
+        teams = [x["team"] for x in ((tl.get("sports") or [{}])[0].get("leagues") or [{}])[0].get("teams", [])]
+        need = {}
+        for pk, p in players.items():
+            t = next((t for t in teams if _team_match(p["_teamFull"], p.get("team", ""), t)), None)
+            if t:
+                need.setdefault(t["id"], []).append(pk)
+
+        def roster(tid):
+            r = get(f"{ESPN}/{path}/teams/{tid}/roster") or {}
+            ath = r.get("athletes") or []
+            if ath and isinstance(ath[0], dict) and "items" in ath[0]:
+                ath = [a for grp in ath for a in grp.get("items", [])]
+            return tid, {norm_name(a.get("fullName") or a.get("displayName")): a for a in ath}
+
+        rosters = {}
+        with ThreadPoolExecutor(8) as ex:
+            for tid, r in ex.map(roster, list(need)):
+                rosters[tid] = r
+        found = {}
+        for tid, pks in need.items():
+            for pk in pks:
+                a = rosters.get(tid, {}).get(norm_name(players[pk]["player"]))
+                if a:
+                    found[pk] = a
+        # fallback: ESPN search by name for players not on a matched roster
+        league = {"NFL": "nfl", "CFB": "college-football", "NBA": "nba"}[sport]
+        miss = [pk for pk in players if pk not in found][:250]
+
+        def search(pk):
+            d = get(f"{ESPN_WEB}/search", params={"query": players[pk]["player"], "type": "player", "limit": 5}) or {}
+            for it in d.get("items", []):
+                if it.get("league") == league and norm_name(it.get("displayName")) == norm_name(players[pk]["player"]):
+                    return pk, {"id": it["id"], "fullName": it.get("displayName")}
+            return pk, None
+        with ThreadPoolExecutor(8) as ex:
+            for pk, a in ex.map(search, miss):
+                if a:
+                    found[pk] = a
+        seasons = espn_seasons(sport, now)
+
+        def logs(pk):
+            aid = found[pk]["id"]
+            games = {}
+            for yr in seasons:
+                gj = get(f"{ESPN_WEB}/sports/{path}/athletes/{aid}/gamelog", params={"season": yr})
+                if gj:
+                    games.update(gl_parse(sport, gj))
+            return pk, games
+
+        with ThreadPoolExecutor(10) as ex:
+            gl_all = dict(ex.map(logs, list(found)))
+
+        for pk, a in found.items():
+            p = players[pk]
+            games = sorted(gl_all.get(pk, {}).values(), key=lambda x: x["date"], reverse=True)
+            exp = a.get("experience") or {}
+            bio = {k: v for k, v in {
+                "espnId": a.get("id"),
+                "img": (a.get("headshot") or {}).get("href") or f"https://a.espncdn.com/i/headshots/{'college-football' if sport == 'CFB' else sport.lower()}/players/full/{a.get('id')}.png",
+                "ht": a.get("displayHeight"), "wt": a.get("displayWeight"), "age": a.get("age"),
+                "dob": (a.get("dateOfBirth") or "")[:10] or None, "jersey": a.get("jersey"),
+                "pos": (a.get("position") or {}).get("displayName"),
+                "college": (a.get("college") or {}).get("name") if sport != "CFB" else None,
+                "cls": exp.get("displayValue") if sport == "CFB" else None,
+                "exp": (f"{exp['years']} yr" + ("s" if exp.get("years") != 1 else "")) if sport != "CFB" and exp.get("years") is not None else None,
+                "home": (a.get("birthPlace") or {}).get("displayText") or ", ".join(x for x in [(a.get("birthPlace") or {}).get("city"), (a.get("birthPlace") or {}).get("state") or (a.get("birthPlace") or {}).get("country")] if x) or None,
+                "status": (a.get("status") or {}).get("name") if (a.get("status") or {}).get("name") not in (None, "Active") else None,
+                "inj": ((a.get("injuries") or [{}])[0] or {}).get("status"),
+                "team": p["_teamFull"],
+            }.items() if v not in (None, "", [])}
+            # which column set to show
+            if sport == "NBA":
+                cols = SHOW_COLS["NBA"]
+            else:
+                ks = set().union(*[g["s"].keys() for g in games[:10]]) if games else set()
+                cols = SHOW_COLS["QB"] if "pass_yds" in ks and (p.get("pos") == "QB" or "pass_att" in ks and any((g["s"].get("pass_att") or 0) > 5 for g in games[:10])) \
+                    else SHOW_COLS["DEF"] if "tackles" in ks else SHOW_COLS["K"] if "kick_pts" in ks else SHOW_COLS["SKILL"]
+            ckeys = [c[0] for c in cols]
+
+            def row(g):
+                return [g["date"], g["at"], g["opp"], g["res"], g["score"]] + [g["s"].get(k) for k in ckeys]
+            cur = [g for g in games if g["season"] == (games[0]["season"] if games else "")]
+            avg = {}
+            for k in ckeys:
+                vs_ = [g["s"][k] for g in cur if isinstance(g["s"].get(k), (int, float))]
+                if vs_:
+                    avg[k] = round(sum(vs_) / len(vs_), 1)
+            opp_full = p["_oppFull"]
+            vs_games = [g for g in games if _team_match(opp_full, p.get("opp", ""), {"displayName": g["oppName"], "abbreviation": g["opp"]})]
+            profiles[pk] = {"bio": bio, "cols": [c[1] for c in cols], "keys": ckeys, "season": cur[0]["season"] if cur else "", "gp": len(cur),
+                            "avg": [avg.get(k) for k in ckeys], "recent": [row(g) for g in games[:10]],
+                            "vsOpp": p.get("opp", ""), "vs": [row(g) + [g["season"][:7]] for g in vs_games[:15]],
+                            "_games": games, "_vs": vs_games}
+        log(f"[espn] {sport}: {len(found)}/{len(players)} players matched, {sum(1 for pk in found if profiles.get(pk, {}).get('vs'))} with games vs opponent")
+
+    # per-prop history vs opponent for the prop's own stat
+    for p in all_props:
+        pk = str(p["dkIds"][0]) if p.get("dkIds") else None
+        pr = profiles.get(pk)
+        p.pop("_teamFull", None)
+        p.pop("_oppFull", None)
+        if not pr or not p.get("statKey"):
+            continue
+        vals = [g["s"][p["statKey"]] for g in pr["_vs"] if isinstance(g["s"].get(p["statKey"]), (int, float))]
+        if vals:
+            p["vs"] = [sum(1 for v in vals if v > p["line"]), len(vals), round(sum(vals) / len(vals), 1)]
+        allv = [g["s"][p["statKey"]] for g in pr["_games"][:10] if isinstance(g["s"].get(p["statKey"]), (int, float))]
+        if allv:
+            p["l10"] = [sum(1 for v in allv if v > p["line"]), len(allv), round(sum(allv) / len(allv), 1)]
+    for pr in profiles.values():
+        pr.pop("_games", None)
+        pr.pop("_vs", None)
+    return profiles
+
+
 def load_prev():
     try:
         with open("data/props.json") as f:
@@ -1000,6 +1226,11 @@ def main():
 def finish(t0, all_props, payouts_by_sport, book_lines, games):
     pay = next(iter(payouts_by_sport.values()), {})
     best_be = min((v["breakeven"] for v in pay.values()), default=0.55)
+    try:
+        profiles = espn_enrich(all_props)
+    except Exception as e:
+        profiles = {}
+        log(f"[espn] failed: {e}")
     for p in all_props:
         try:
             analyse(p, book_lines, best_be)
@@ -1038,6 +1269,8 @@ def finish(t0, all_props, payouts_by_sport, book_lines, games):
             p["mt"] = k
         pk = str(p["dkIds"][0]) if p.get("dkIds") else p["player"]
         pl = players.setdefault(pk, {})
+        if pk in profiles and "bio" not in pl:
+            pl.update(profiles[pk])
         if p.get("news"):
             pl["news"] = p.pop("news")
         if p.get("img"):

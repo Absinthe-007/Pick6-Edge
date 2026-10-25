@@ -2,232 +2,359 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Pick6 Edge</title>
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#0d0f14">
+<meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Pick6 Edge">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0d0f14;--panel:#151922;--panel2:#1b2030;--line:#262c3d;--txt:#e7eaf2;--mute:#8b93a7;--acc:#53d769;--more:#3fb950;--less:#f0883e;--warn:#e3b341;--bad:#f85149;--blue:#58a6ff}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-header{padding:16px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
-h1{margin:0;font-size:20px}h1 span{color:var(--acc)}
-.sub{color:var(--mute);font-size:12px}
-.wrap{max-width:1300px;margin:0 auto;padding:12px 16px 80px}
-.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
-.tab{background:var(--panel);border:1px solid var(--line);color:var(--txt);padding:7px 14px;border-radius:999px;cursor:pointer;font-weight:600}
-.tab.on{background:var(--acc);color:#06210c;border-color:var(--acc)}
-.filters{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin-bottom:10px}
-select,input[type=search],input[type=number]{width:100%;background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px}
-label.chk{display:flex;gap:6px;align-items:center;color:var(--mute);font-size:13px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px}
-.stats{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
-.pill{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--mute)}
-.pill b{color:var(--txt)}
-table{width:100%;border-collapse:collapse}
-th{position:sticky;top:0;background:var(--panel2);color:var(--mute);font-weight:600;font-size:12px;text-align:left;padding:8px;border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap}
-td{padding:8px;border-bottom:1px solid var(--line);vertical-align:middle}
-tr.r:hover{background:#171c28;cursor:pointer}
-.pl{display:flex;gap:8px;align-items:center}
-.pl img{width:34px;height:34px;border-radius:50%;background:#222;object-fit:cover}
-.pl .n{font-weight:600}.pl .m{color:var(--mute);font-size:12px}
-.chip{display:inline-block;padding:3px 9px;border-radius:999px;font-weight:700;font-size:12px}
-.MORE{background:rgba(63,185,80,.15);color:var(--more)}.LESS{background:rgba(240,136,62,.15);color:var(--less)}
-.bar{height:6px;border-radius:3px;background:#2a3042;overflow:hidden;width:90px;margin-top:4px}
-.bar i{display:block;height:100%}
-.pos{color:var(--more)}.neg{color:var(--bad)}.mute{color:var(--mute)}
-.tag{font-size:10px;padding:2px 6px;border-radius:4px;background:#2a3042;color:var(--mute);margin-left:4px}
-.tag.boost{background:rgba(227,179,65,.15);color:var(--warn)}
-.tag.mkt{background:rgba(88,166,255,.15);color:var(--blue)}
-.add{background:none;border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:4px 8px;cursor:pointer}
-.add.on{background:var(--acc);color:#06210c}
-.more-btn{display:block;margin:14px auto;background:var(--panel);color:var(--txt);border:1px solid var(--line);padding:10px 20px;border-radius:8px;cursor:pointer}
-#drawer{position:fixed;top:0;right:0;height:100%;width:min(560px,100%);background:var(--panel);border-left:1px solid var(--line);transform:translateX(100%);transition:.2s;overflow:auto;z-index:20;padding:18px}
-#drawer.open{transform:none}
-#drawer h2{margin:0 0 4px;font-size:18px}
-#drawer h3{font-size:13px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em;margin:18px 0 8px}
-.x{float:right;background:none;border:0;color:var(--mute);font-size:22px;cursor:pointer}
-.big{display:flex;gap:10px;margin-top:12px}
-.big div{flex:1;background:var(--panel2);border-radius:10px;padding:12px;text-align:center}
-.big .v{font-size:24px;font-weight:800}
-.glog{display:flex;align-items:flex-end;gap:6px;height:120px;border-bottom:1px solid var(--line);position:relative;padding-top:10px}
-.glog .c{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
-.glog .c i{width:100%;border-radius:4px 4px 0 0}
-.glog .c small{font-size:10px;color:var(--mute);margin-top:3px;white-space:nowrap}
-.glog .ln{position:absolute;left:0;right:0;border-top:2px dashed var(--warn)}
-.mini td,.mini th{padding:6px;font-size:12px}
-.news{background:var(--panel2);padding:10px;border-radius:8px;font-size:13px}
-#slip{position:fixed;bottom:0;left:0;right:0;background:var(--panel2);border-top:1px solid var(--line);padding:10px 16px;z-index:10;display:none}
-#slip .in{max-width:1300px;margin:0 auto;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
-.disc{color:var(--mute);font-size:11px;margin-top:20px;line-height:1.5}
-.track{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-bottom:14px}
-.trk{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
-.trk .sp{color:var(--mute);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
-.trk .pc{font-size:26px;font-weight:800;line-height:1.15}
-.trk .rec{color:var(--mute);font-size:12px}
-.track-note{grid-column:1/-1;color:var(--mute);font-size:11px;margin-top:-2px}
-@media(max-width:760px){.hide-m{display:none}td,th{padding:6px 4px}.pl img{width:28px;height:28px}}
+:root{--bg:#000;--card:#1b1b1b;--card2:#242424;--line:#2e2e2e;--txt:#fff;--mute:#9a9a9a;--dk:#53d337;--dk2:#61e443;--orange:#f46c22;--gold:#f7d002;--more:#53d337;--less:#f46c22;--bad:#ff4d4d}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.35 Barlow,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+button{font:inherit;color:inherit}
+.cond{font-family:'Barlow Condensed',Barlow,sans-serif}
+header{position:sticky;top:0;z-index:15;background:#000;border-bottom:1px solid #1d1d1d;padding:10px 16px calc(0px)}
+.hrow{display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:1400px;margin:0 auto}
+.logo{display:flex;align-items:center;gap:8px;font-weight:800;font-size:22px;letter-spacing:.02em}
+.logo .crown{width:30px;height:30px;border-radius:8px;background:var(--dk);color:#000;display:grid;place-items:center;font-size:18px;font-weight:800}
+.logo i{font-style:normal;color:var(--dk)}
+.upd{color:var(--mute);font-size:12px;text-align:right}
+.pills{display:flex;gap:8px;overflow-x:auto;padding:10px 0 8px;max-width:1400px;margin:0 auto;scrollbar-width:none}
+.pills::-webkit-scrollbar,.cats::-webkit-scrollbar,.games::-webkit-scrollbar{display:none}
+.pill{flex:none;display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);padding:7px 14px;border-radius:999px;cursor:pointer;font-weight:700;font-size:14px}
+.pill.on{background:#fff;color:#000;border-color:#fff}
+.pill .n{font-size:11px;color:var(--mute);font-weight:600}.pill.on .n{color:#555}
+.cats{display:flex;gap:18px;overflow-x:auto;max-width:1400px;margin:0 auto;scrollbar-width:none}
+.cat{flex:none;background:none;border:0;border-bottom:3px solid transparent;padding:8px 0 9px;color:var(--mute);font-weight:700;cursor:pointer;font-size:14px;white-space:nowrap}
+.cat.on{color:#fff;border-color:var(--dk)}
+.wrap{max-width:1400px;margin:0 auto;padding:12px 16px 140px}
+.track{display:flex;gap:8px;overflow-x:auto;margin-bottom:12px;scrollbar-width:none}
+.trk{flex:1 0 150px;background:var(--card);border-radius:12px;padding:10px 12px}
+.trk .sp{color:var(--mute);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.trk .pc{font-size:26px;font-weight:800;line-height:1.1}
+.trk .rec{color:var(--mute);font-size:11px}
+.games{display:flex;gap:8px;overflow-x:auto;margin-bottom:10px;scrollbar-width:none}
+.gm{flex:none;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 10px;cursor:pointer;text-align:left;min-width:96px}
+.gm b{display:block;font-size:13px}.gm small{color:var(--mute);font-size:11px}
+.gm.on{border-color:var(--dk);background:#14240f}
+.tools{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center}
+.tools input[type=search],.tools select{background:var(--card);color:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font:inherit}
+.tools input[type=search]{flex:1 1 200px}
+.tg{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color:var(--mute);font-size:13px;cursor:pointer;user-select:none}
+.tg input{accent-color:var(--dk)}
+.sum{color:var(--mute);font-size:12px;margin:-4px 0 10px}
+.sum b{color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(212px,1fr));gap:10px}
+.card{position:relative;background:var(--card);border-radius:14px;padding:12px 12px 10px;display:flex;flex-direction:column;align-items:center;text-align:center;cursor:pointer;border:2px solid transparent;transition:border-color .15s}
+.card:hover{border-color:#3a3a3a}
+.card.sel{border-color:var(--dk)}
+.card .mult{position:absolute;top:10px;left:10px;font-size:11px;font-weight:800;padding:2px 7px;border-radius:6px;background:var(--gold);color:#000}
+.card .edge{position:absolute;top:10px;right:10px;font-size:11px;font-weight:800;padding:2px 7px;border-radius:6px}
+.edge.pos{background:rgba(83,211,55,.15);color:var(--dk)}.edge.neg{background:#2a2a2a;color:var(--mute)}
+.hs{width:74px;height:74px;border-radius:50%;background:#2c2c2c center/cover no-repeat;border:2px solid #333;margin-top:6px;overflow:hidden}
+.hs img{width:100%;height:100%;object-fit:cover}
+.meta{color:var(--mute);font-size:12px;font-weight:600;margin-top:6px;text-transform:uppercase;letter-spacing:.03em}
+.nm{font-weight:800;font-size:16px;margin-top:1px;line-height:1.15}
+.gt{color:var(--mute);font-size:12px;margin-top:2px}
+.ln{font-size:34px;font-weight:800;margin-top:8px;line-height:1}
+.st{font-size:13px;color:#ddd;font-weight:600;margin-top:2px;min-height:17px}
+.proj{margin-top:8px;display:inline-flex;align-items:center;gap:6px;background:var(--card2);border-radius:8px;padding:4px 9px;font-size:13px;font-weight:700}
+.proj .lab{color:var(--mute);font-weight:600;font-size:11px;text-transform:uppercase}
+.up{color:var(--more)}.dn{color:var(--less)}
+.hits{font-size:11px;color:var(--mute);margin-top:6px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.hits b{color:#ddd}
+.ml{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;margin-top:10px}
+.ml button{position:relative;background:var(--card2);border:2px solid #333;border-radius:10px;padding:8px 4px 6px;cursor:pointer;font-weight:800;font-size:14px;display:flex;flex-direction:column;align-items:center;line-height:1.1}
+.ml button small{font-size:11px;font-weight:600;color:var(--mute);margin-top:2px}
+.ml button.rec.L{border-color:rgba(244,108,34,.55)}.ml button.rec.M{border-color:rgba(83,211,55,.55)}
+.ml button.rec::after{content:'EDGE';position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:800;padding:1px 5px;border-radius:4px;background:var(--dk);color:#000;letter-spacing:.05em}
+.ml button.rec.L::after{background:var(--orange)}
+.ml button.on.M{background:var(--dk);border-color:var(--dk);color:#000}.ml button.on.L{background:var(--orange);border-color:var(--orange);color:#000}
+.ml button.on small{color:#000}
+.ml button:disabled{opacity:.35;cursor:not-allowed}
+.more-btn{display:block;margin:16px auto;background:var(--card);color:#fff;border:1px solid var(--line);padding:11px 22px;border-radius:10px;cursor:pointer;font-weight:700}
+.empty{color:var(--mute);padding:40px;text-align:center;grid-column:1/-1}
+/* slip */
+#slip{position:fixed;left:0;right:0;bottom:0;z-index:18;background:#111;border-top:1px solid #2a2a2a;padding:10px 16px calc(10px + env(safe-area-inset-bottom));display:none}
+#slip .in{max-width:1400px;margin:0 auto}
+#slip .top{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer}
+#slip .cnt{display:flex;align-items:center;gap:8px;font-weight:800;font-size:16px}
+#slip .cnt span{background:var(--dk);color:#000;border-radius:999px;min-width:24px;height:24px;display:grid;place-items:center;font-size:13px;padding:0 6px}
+#slip .heads{display:flex}
+#slip .heads img{width:30px;height:30px;border-radius:50%;border:2px solid #111;margin-left:-8px;background:#333;object-fit:cover}
+#slip .body{display:none;margin-top:10px;max-height:52vh;overflow:auto}
+#slip.open .body{display:block}
+.sp-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #222}
+.sp-row img{width:36px;height:36px;border-radius:50%;background:#333;object-fit:cover}
+.sp-row .x{margin-left:auto;background:none;border:0;color:var(--mute);font-size:20px;cursor:pointer}
+.sideTag{font-weight:800;font-size:12px;padding:2px 7px;border-radius:6px}
+.sideTag.MORE{background:var(--dk);color:#000}.sideTag.LESS{background:var(--orange);color:#000}
+.payout{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.payout div{background:var(--card);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--mute)}
+.payout b{color:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--dk);color:#000;font-weight:800;border:0;border-radius:10px;padding:11px 16px;cursor:pointer;text-decoration:none}
+.btn.ghost{background:var(--card);color:#fff;border:1px solid var(--line)}
+/* player sheet */
+#ov{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:30;display:none}
+#ov.open{display:block}
+#sheet{position:fixed;top:0;right:0;height:100%;width:min(640px,100%);background:#0f0f0f;z-index:31;transform:translateX(100%);transition:transform .22s;overflow:auto;border-left:1px solid #222}
+#sheet.open{transform:none}
+.sh-head{position:relative;padding:18px 16px 14px;background:linear-gradient(180deg,#1d2b17 0%,#0f0f0f 100%)}
+.sh-close{position:absolute;top:10px;right:12px;background:#222;border:0;width:34px;height:34px;border-radius:50%;font-size:20px;cursor:pointer;color:#fff}
+.sh-top{display:flex;gap:14px;align-items:center}
+.sh-top .big{width:108px;height:108px;border-radius:50%;background:#2a2a2a;object-fit:cover;border:3px solid var(--dk);flex:none}
+.sh-top h2{margin:0;font-size:26px;font-weight:800;line-height:1.05}
+.sh-top .sub{color:#cfcfcf;font-size:13px;margin-top:4px}
+.chipx{display:inline-block;font-size:11px;font-weight:800;padding:2px 7px;border-radius:6px;background:#3a1d1d;color:#ff8a8a;margin-left:6px}
+.bio{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.bio div{background:rgba(255,255,255,.05);border-radius:10px;padding:8px 10px}
+.bio small{display:block;color:var(--mute);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.bio b{font-size:14px}
+.sec{padding:4px 16px 4px}
+.sec h3{font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.07em;margin:20px 0 8px;font-weight:800}
+.box{background:var(--card);border-radius:12px;padding:12px}
+.propbox{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.propbox .l{flex:1;min-width:150px}
+.propbox .ln{margin:0;font-size:38px}
+.big3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.big3 div{background:var(--card2);border-radius:10px;padding:8px;text-align:center}
+.big3 small{display:block;color:var(--mute);font-size:11px;font-weight:700;text-transform:uppercase}
+.big3 b{font-size:20px}
+.glog{display:flex;align-items:flex-end;gap:5px;height:130px;position:relative;margin-top:6px;border-bottom:1px solid #333}
+.glog .c{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0}
+.glog .c i{width:100%;border-radius:4px 4px 0 0;min-height:2px}
+.glog .c span{font-size:11px;font-weight:700}
+.glog .c small{font-size:9px;color:var(--mute);margin-top:3px;white-space:nowrap;overflow:hidden;max-width:100%}
+.glog .lnl{position:absolute;left:0;right:0;border-top:2px dashed var(--gold)}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{color:var(--mute);font-weight:700;text-align:left;padding:6px 5px;border-bottom:1px solid #333;white-space:nowrap}
+.tbl td{padding:6px 5px;border-bottom:1px solid #222;white-space:nowrap}
+.tbl td.hl,.tbl th.hl{background:rgba(83,211,55,.1);color:#fff;font-weight:800}
+.tbl tr.avg td{color:var(--dk);font-weight:800}
+.scroll{overflow-x:auto}
+.W{color:var(--dk);font-weight:800}.L{color:var(--bad);font-weight:800}
+.pos{color:var(--dk)}.neg{color:var(--bad)}.mute{color:var(--mute)}
+.oprops{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.op{flex:none;background:var(--card2);border:2px solid transparent;border-radius:10px;padding:8px 10px;cursor:pointer;min-width:120px;text-align:left}
+.op.on{border-color:var(--dk)}
+.op b{font-size:18px}.op small{display:block;color:var(--mute);font-size:11px}
+.news{background:var(--card);padding:12px;border-radius:12px;font-size:13px}
+.disc{color:var(--mute);font-size:11px;margin-top:24px;line-height:1.5}
+@media(max-width:560px){.grid{grid-template-columns:repeat(2,1fr);gap:8px}.card{padding:10px 8px 8px}.hs{width:60px;height:60px}.nm{font-size:14px}.ln{font-size:28px}.ml button{font-size:13px}.bio{grid-template-columns:repeat(2,1fr)}.sh-top .big{width:84px;height:84px}.sh-top h2{font-size:22px}.card .edge,.card .mult{font-size:10px;top:6px}.card .mult{left:6px}.card .edge{right:6px}}
 </style>
 </head>
 <body>
 <header>
-  <div><h1>Pick6 <span>Edge</span></h1><div class="sub" id="upd">Loading…</div></div>
-  <div class="sub" id="src"></div>
+  <div class="hrow">
+    <div class="logo"><div class="crown">6</div><span>PICK6 <i>EDGE</i></span></div>
+    <div class="upd" id="upd">Loading…</div>
+  </div>
+  <div class="pills" id="sports"></div>
+  <div class="cats" id="cats"></div>
 </header>
 <div class="wrap">
   <div class="track" id="track"></div>
-  <div class="tabs" id="sports"></div>
-  <div class="filters">
-    <input type="search" id="q" placeholder="Search player / team…">
-    <select id="slate"></select>
-    <select id="game"></select>
-    <select id="stat"></select>
+  <div class="games" id="games"></div>
+  <div class="tools">
+    <input type="search" id="q" placeholder="Search players or teams">
     <select id="sort">
-      <option value="value">Sort: Best value</option>
-      <option value="prob">Sort: Highest probability</option>
+      <option value="value">Sort: Biggest edge</option>
+      <option value="prob">Sort: Highest hit %</option>
+      <option value="diff">Sort: Proj vs line gap</option>
       <option value="start">Sort: Start time</option>
       <option value="player">Sort: Player A–Z</option>
     </select>
-    <label class="chk"><input type="checkbox" id="std" checked> Standard 1x lines only</label>
-    <label class="chk"><input type="checkbox" id="mkt" checked> Has sportsbook odds</label>
-    <label class="chk">Min prob % <input type="number" id="minp" value="0" min="0" max="100" style="width:64px;padding:4px"></label>
+    <label class="tg"><input type="checkbox" id="pos"> +Edge only</label>
+    <label class="tg"><input type="checkbox" id="std" checked> Standard 1x only</label>
+    <label class="tg"><input type="checkbox" id="mkt"> Has sportsbook odds</label>
   </div>
-  <div class="stats" id="sum"></div>
-  <div style="overflow-x:auto">
-  <table>
-    <thead><tr>
-      <th>Player</th><th>Stat</th><th>Line</th><th>Play</th><th class="hide-m">More / Less</th><th class="hide-m">L5 hit</th><th class="hide-m">Proj</th><th>Where to play</th><th></th>
-    </tr></thead>
-    <tbody id="rows"></tbody>
-  </table>
-  </div>
+  <div class="sum" id="sum"></div>
+  <div class="grid" id="grid"></div>
   <button class="more-btn" id="moreBtn">Show more</button>
   <div class="disc">
-    <b>How it works.</b> Lines come from DraftKings Pick6. Each prop's probability blends (a) the no-vig sportsbook price (BetRivers/Kambi, Bovada, and any books from The Odds API if a key is set), shifted to the Pick6 line with a Normal model for yardage-type stats and a Poisson model for count stats, and (b) the player's season average + last 5 games from DraftKings. <b>Value</b> is your edge versus the Pick6 break-even per pick (<span id="be"></span>); multiplier-boosted or discounted picks assume the multiplier scales your payout. <b>Where to play</b> is DraftKings only: Pick6 (main or alt line), plus the DraftKings sportsbook price when The Odds API key is set. The other books are used only to estimate the probability.
-    Models are estimates, not guarantees. Bet responsibly; 21+. If you or someone you know has a gambling problem, call 1-800-GAMBLER.
+    <b>How to read a card.</b> The big number is the DraftKings Pick6 line. <b>Proj</b> is what the model expects the player to get (▲ above the line = lean More, ▼ below = lean Less). The <b>EDGE</b> tag marks the side the model likes; the % under More / Less is the chance that side hits. The top-right tag is your edge vs. Pick6's break-even (<span id="be"></span>). Tap More or Less to build a slip, then tap <b>Open DraftKings Pick6</b> to place it. Tap a player for height, weight, school, season stats, last 10 games and every game vs. tonight's opponent (ESPN, last 3 seasons).<br>
+    Probability = de-vigged sportsbook prices (BetRivers, Bovada, + Odds API books if set) moved to the Pick6 line, blended with the player's season + last-5 averages. Estimates only, not guarantees. 21+. Gambling problem? Call 1-800-GAMBLER.
   </div>
 </div>
-<aside id="drawer"></aside>
-<div id="slip"><div class="in"><div id="slipTxt"></div><div><button class="add" id="slipClear">Clear slip</button></div></div></div>
+<div id="slip"><div class="in">
+  <div class="top" id="slipTop"><div class="cnt"><span id="slipN">0</span> My Picks <div class="heads" id="slipHeads"></div></div><div id="slipSum" style="text-align:right;font-size:13px"></div></div>
+  <div class="body" id="slipBody"></div>
+</div></div>
+<div id="ov"></div>
+<aside id="sheet"></aside>
 <script>
-let D=null,SPORT='ALL',LIMIT=150,SORTCOL=null;const SLIP=new Map();
+let D=null,SPORT=null,CAT='Top Edges',GAME='',LIMIT=120;const SLIP=new Map();
 const $=id=>document.getElementById(id);
-const pct=x=>x==null?'–':(x*100).toFixed(1)+'%';
+const pct=x=>x==null?'–':(x*100).toFixed(0)+'%';
+const pct1=x=>x==null?'–':(x*100).toFixed(1)+'%';
 const sgn=x=>x==null?'–':(x>0?'+':'')+(x*100).toFixed(1)+'%';
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const fmtT=s=>{if(!s)return'';const d=new Date(s);return d.toLocaleString([], {weekday:'short',hour:'numeric',minute:'2-digit'})};
+const fmtT=s=>{if(!s)return'';const d=new Date(s);return d.toLocaleString([],{weekday:'short',hour:'numeric',minute:'2-digit'})};
+const lab=s=>s==='CFB'?'NCAAF':s;
+const ICON={NFL:'🏈',CFB:'🏈',NBA:'🏀'};
+const num=v=>v==null||v===''?'–':v;
+const imgOf=p=>{const pl=D.players[p.pk]||{};return (pl.bio||{}).img||pl.img||''};
+const img2=p=>{const pl=D.players[p.pk]||{};return pl.img&&(pl.bio||{}).img?pl.img:''};
+const fallbackImg=e=>{const f=e.dataset.f;if(f&&e.src!==f){e.src=f;e.dataset.f='';return}e.onerror=null;e.style.visibility='hidden'};
 
-fetch('data/props.json?'+Date.now()).then(r=>r.json()).then(d=>{D=d;init()}).catch(e=>{$('upd').textContent='Could not load data/props.json — the scraper has not run yet.'});
+fetch('data/props.json?'+Date.now()).then(r=>r.json()).then(d=>{D=d;D.props.forEach(p=>p._k=p.sport+'|'+p.id);init()}).catch(()=>{$('upd').textContent='Could not load data — the scraper has not run yet.'});
 
-function renderTrack(){
-  const T=(D.track||{}),R=T.record||{},P=Object.values(T.pending||{});
-  const sports=[...new Set([...Object.keys(R),...D.props.map(p=>p.sport)])].filter(s=>s!=='MLB');
-  const lab=s=>s==='CFB'?'NCAAF':s, col=x=>x==null?'var(--txt)':x>=.55?'var(--acc)':x>=.5?'var(--warn)':'var(--bad)';
-  const cards=sports.map(s=>{const r=R[s]||{},n=(r.w||0)+(r.l||0),pc=n?r.w/n:null,vn=(r.vw||0)+(r.vl||0),pend=P.filter(e=>e.s===s).length;
-    return `<div class="trk"><div class="sp">${lab(s)} · picks right</div><div class="pc" style="color:${col(pc)}">${pc==null?'–':(pc*100).toFixed(1)+'%'}</div>`+
-    `<div class="rec">${n?`${r.w}-${r.l}${r.push?'-'+r.push:''} (${n} graded)`:'No graded picks yet'}${vn?` · +value picks ${(r.vw/vn*100).toFixed(1)}% (${vn})`:''}${pend?` · ${pend} pending`:''}</div></div>`}).join('');
-  $('track').innerHTML=cards+`<div class="track-note">Every recommended MORE/LESS is locked in at its last pre-game line and graded against the final box score (ESPN). Pushes and DNPs don't count.${T.since?' Tracking since '+T.since+'.':''}</div>`;
-}
 function init(){
-  renderTrack();
-  $('upd').textContent='Updated '+new Date(D.updated).toLocaleString()+' · '+D.props.length+' Pick6 props';
-  $('src').textContent='Odds: '+D.sources.join(' · ');
-  $('be').textContent=Object.entries(D.payouts).map(([n,v])=>`${n}-pick ${Object.values(v.payouts)[0]}x → ${(v.breakeven*100).toFixed(1)}%`).join(', ');
-  const sports=['ALL',...new Set(D.props.map(p=>p.sport))];
-  $('sports').innerHTML=sports.map(s=>`<button class="tab ${s===SPORT?'on':''}" data-s="${s}">${s==='ALL'?'All':s==='CFB'?'NCAAF':s}</button>`).join('');
-  $('sports').onclick=e=>{const s=e.target.dataset.s;if(!s)return;SPORT=s;LIMIT=150;init();};
-  fillSelects();
-  ['q','slate','game','stat','sort','std','mkt','minp'].forEach(id=>$(id).oninput=()=>{LIMIT=150;if(id==='slate')fillSelects(true);render()});
-  $('moreBtn').onclick=()=>{LIMIT+=150;render()};
-  $('slipClear').onclick=()=>{SLIP.clear();render();renderSlip()};
-  render();
+  $('upd').innerHTML='Updated '+new Date(D.updated).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+'<br>'+D.props.length+' Pick6 props';
+  $('be').textContent=Object.entries(D.payouts||{}).map(([n,v])=>`${n}-pick ${Object.values(v.payouts)[0]}x → ${(v.breakeven*100).toFixed(1)}%`).join(', ');
+  const order=['NFL','NBA','CFB'];const sp=order.filter(s=>D.props.some(p=>p.sport===s));
+  if(!SPORT||!sp.includes(SPORT))SPORT=sp[0]||'NFL';
+  $('sports').innerHTML=sp.map(s=>`<button class="pill ${s===SPORT?'on':''}" data-s="${s}">${ICON[s]||''} ${lab(s)} <span class="n">${D.props.filter(p=>p.sport===s&&p.pick).length}</span></button>`).join('');
+  $('sports').onclick=e=>{const b=e.target.closest('.pill');if(!b)return;SPORT=b.dataset.s;CAT='Top Edges';GAME='';LIMIT=120;init()};
+  renderTrack();renderCats();renderGames();
+  ['q','sort','pos','std','mkt'].forEach(id=>$(id).oninput=()=>{LIMIT=120;render()});
+  $('moreBtn').onclick=()=>{LIMIT+=120;render()};
+  $('slipTop').onclick=()=>$('slip').classList.toggle('open');
+  $('ov').onclick=closeSheet;
+  render();renderSlip();
 }
-function base(){return D.props.filter(p=>SPORT==='ALL'||p.sport===SPORT)}
-function fillSelects(keepSlate){
-  const b=base();
-  if(!keepSlate){const sl=[...new Set(b.map(p=>p.sport+' · '+p.slate))];$('slate').innerHTML='<option value="">All slates</option>'+sl.map(s=>`<option>${esc(s)}</option>`).join('');}
-  const s=$('slate').value;const b2=b.filter(p=>!s||p.sport+' · '+p.slate===s);
-  const games=[...new Set(b2.map(p=>p.game))].sort();$('game').innerHTML='<option value="">All games</option>'+games.map(g=>`<option>${esc(g)}</option>`).join('');
-  const stats=[...new Set(b2.map(p=>p.stat))].sort();$('stat').innerHTML='<option value="">All stats</option>'+stats.map(g=>`<option>${esc(g)}</option>`).join('');
+function renderTrack(){
+  const T=D.track||{},R=T.record||{},P=Object.values(T.pending||{});
+  const sports=['NFL','NBA','CFB'].filter(s=>R[s]||D.props.some(p=>p.sport===s));
+  const col=x=>x==null?'#fff':x>=.55?'var(--dk)':x>=.5?'var(--gold)':'var(--bad)';
+  $('track').innerHTML=sports.map(s=>{const r=R[s]||{},n=(r.w||0)+(r.l||0),pc=n?r.w/n:null,pend=P.filter(e=>e.s===s).length;
+    return `<div class="trk"><div class="sp">${lab(s)} · picks right</div><div class="pc" style="color:${col(pc)}">${pc==null?'–':(pc*100).toFixed(1)+'%'}</div><div class="rec">${n?`${r.w}-${r.l} (${n} graded)`:'No graded picks yet'}${pend?` · ${pend} pending`:''}</div></div>`}).join('');
+}
+function sportProps(){return D.props.filter(p=>p.sport===SPORT&&p.pick)}
+function renderCats(){
+  const cs=[...new Set(sportProps().map(p=>p.category).filter(Boolean))];
+  const pref=['Featured','Points','Rebounds','Assists','3-Pointers','Pts+Rebs+Asts','Combos','Defensive Stats','Passing','Rushing','Receiving','Touchdowns','Kicking'];
+  cs.sort((a,b)=>((pref.indexOf(a)+1)||99)-((pref.indexOf(b)+1)||99));
+  const all=['Top Edges',...cs];if(!all.includes(CAT))CAT='Top Edges';
+  $('cats').innerHTML=all.map(c=>`<button class="cat ${c===CAT?'on':''}" data-c="${esc(c)}">${esc(c)}</button>`).join('');
+  $('cats').onclick=e=>{const b=e.target.closest('.cat');if(!b)return;CAT=b.dataset.c;LIMIT=120;renderCats();render()};
+}
+function renderGames(){
+  const gs={};sportProps().forEach(p=>{if(!gs[p.game])gs[p.game]=p.start});
+  const list=Object.entries(gs).sort((a,b)=>String(a[1]).localeCompare(String(b[1])));
+  $('games').innerHTML=`<button class="gm ${GAME===''?'on':''}" data-g=""><b>All games</b><small>${list.length} games</small></button>`+list.map(([g,t])=>`<button class="gm ${g===GAME?'on':''}" data-g="${esc(g)}"><b>${esc(g)}</b><small>${fmtT(t)}</small></button>`).join('');
+  $('games').onclick=e=>{const b=e.target.closest('.gm');if(!b)return;GAME=b.dataset.g;LIMIT=120;renderGames();render()};
 }
 function filtered(){
-  const q=$('q').value.toLowerCase().trim(),sl=$('slate').value,g=$('game').value,st=$('stat').value,std=$('std').checked,mk=$('mkt').checked,minp=(+$('minp').value||0)/100;
-  let a=base().filter(p=>p.pick&&(!sl||p.sport+' · '+p.slate===sl)&&(!g||p.game===g)&&(!st||p.stat===st)&&(!std||!p.boosted)&&(!mk||p.books.length)&&(p.pPick>=minp)&&(!q||(p.player+' '+p.team+' '+p.opp+' '+p.game).toLowerCase().includes(q)));
-  const so=$('sort').value;
-  a.sort(so==='prob'?(x,y)=>y.pPick-x.pPick:so==='start'?(x,y)=>x.start.localeCompare(y.start)||y.value-x.value:so==='player'?(x,y)=>x.player.localeCompare(y.player):(x,y)=>y.value-x.value);
+  const q=$('q').value.toLowerCase().trim(),pos=$('pos').checked,std=$('std').checked,mk=$('mkt').checked;
+  let a=sportProps().filter(p=>(CAT==='Top Edges'||p.category===CAT)&&(!GAME||p.game===GAME)&&(!pos||p.value>0)&&(!std||!p.boosted)&&(!mk||p.books.length)&&(!q||(p.player+' '+p.team+' '+p.opp+' '+p.game+' '+p.stat).toLowerCase().includes(q)));
+  if(CAT==='Top Edges'){const seen=new Set();a=a.filter(p=>p.statKey&&!seen.has(p.pk+'|'+p.stat)&&seen.add(p.pk+'|'+p.stat))}
+  const so=$('sort').value,gap=p=>p.proj==null?0:Math.abs(p.proj-p.line)/Math.max(p.line,1);
+  a.sort(so==='prob'?(x,y)=>y.pPick-x.pPick:so==='diff'?(x,y)=>gap(y)-gap(x):so==='start'?(x,y)=>String(x.start).localeCompare(String(y.start))||y.value-x.value:so==='player'?(x,y)=>x.player.localeCompare(y.player):(x,y)=>y.value-x.value);
   return a;
 }
 function render(){
   if(!D)return;const a=filtered();
-  const pos=a.filter(p=>p.value>0).length,mk=a.filter(p=>p.books.length).length;
-  $('sum').innerHTML=`<span class="pill"><b>${a.length}</b> props</span><span class="pill"><b class="pos">${pos}</b> beat break-even</span><span class="pill"><b>${mk}</b> with sportsbook odds</span><span class="pill">Break-even <b>${(D.bestBreakeven*100).toFixed(1)}%</b> per pick</span>`;
-  $('rows').innerHTML=a.slice(0,LIMIT).map(row).join('')||'<tr><td colspan="9" class="mute">No props match.</td></tr>';
+  $('sum').innerHTML=`<b>${a.length}</b> props · <b class="pos">${a.filter(p=>p.value>0).length}</b> beat the ${(D.bestBreakeven*100).toFixed(1)}% break-even · <b>${a.filter(p=>p.books.length).length}</b> backed by sportsbook odds`;
+  $('grid').innerHTML=a.slice(0,LIMIT).map(card).join('')||'<div class="empty">No props match.</div>';
   $('moreBtn').style.display=a.length>LIMIT?'block':'none';
-  $('rows').querySelectorAll('tr.r').forEach(tr=>tr.onclick=e=>{if(e.target.closest('.add')){toggleSlip(+tr.dataset.id);return}open(+tr.dataset.id)});
 }
-function row(p){
-  const pl=D.players[p.pk]||{},w=p.where[0]||[],mult=p.pick==='MORE'?p.moreMult:p.lessMult;
-  const tags=(p.promo?`<span class="tag boost">${esc(p.promo)}</span>`:'')+(p.boosted?`<span class="tag boost">${mult}x</span>`:'')+(p.books.length?`<span class="tag mkt">${p.books.length} book${p.books.length>1?'s':''}</span>`:'<span class="tag">stats only</span>');
-  const hit=p.hitL5?`${p.hitL5[0]}/${p.hitL5[1]}`:'–';
-  return `<tr class="r" data-id="${p.id}">
-  <td><div class="pl"><img loading="lazy" src="${esc(pl.img||'')}" onerror="this.style.visibility='hidden'"><div><div class="n">${esc(p.player)}</div><div class="m">${esc(p.pos)} ${esc(p.team)} vs ${esc(p.opp)} · ${fmtT(p.start)}</div></div></div></td>
-  <td>${esc(p.stat)}${tags}</td><td><b>${p.line}</b></td>
-  <td><span class="chip ${p.pick}">${p.pick} ${pct(p.pPick)}</span><div class="${p.value>0?'pos':'neg'}" style="font-size:12px">${sgn(p.value)} value</div></td>
-  <td class="hide-m">${pct(p.pMore)} / ${p.pLess==null?'–':pct(p.pLess)}<div class="bar"><i style="width:${(p.pMore*100).toFixed(0)}%;background:var(--more)"></i></div></td>
-  <td class="hide-m">${hit}</td><td class="hide-m">${p.proj??'–'}</td>
-  <td><b>${esc(w[0]||'')}</b><div class="mute" style="font-size:12px">${w[1]??''} @ ${esc(w[2]??'')}</div></td>
-  <td><button class="add ${SLIP.has(p.id)?'on':''}">${SLIP.has(p.id)?'✓':'+'}</button></td></tr>`;
+function card(p){
+  const s=SLIP.get(p._k),rec=p.pick,mult=rec==='MORE'?p.moreMult:p.lessMult;
+  const dir=p.proj==null?'':p.proj>p.line?'<span class="up">▲</span>':p.proj<p.line?'<span class="dn">▼</span>':'';
+  const multTag=p.promo?`<div class="mult">${esc(p.promo)}</div>`:p.boosted?`<div class="mult">${rec==='MORE'?'More':'Less'} ${mult}x</div>`:'';
+  const hits=[p.hitL5?`L5 <b>${p.hitL5[0]}/${p.hitL5[1]}</b>`:'',p.l10?`L10 <b>${p.l10[0]}/${p.l10[1]}</b>`:'',p.vs?`vs ${esc(p.opp)} <b>${p.vs[0]}/${p.vs[1]}</b>`:''].filter(Boolean).join(' · ');
+  return `<div class="card ${s?'sel':''}" onclick="openP('${p._k}',event)">
+    ${multTag}<div class="edge ${p.value>0?'pos':'neg'}">${sgn(p.value)}</div>
+    <div class="hs"><img loading="lazy" src="${esc(imgOf(p))}" data-f="${esc(img2(p))}" onerror="fallbackImg(this)" alt=""></div>
+    <div class="meta">${esc(p.team)} - ${esc(p.pos)}</div>
+    <div class="nm">${esc(p.player)}</div>
+    <div class="gt">${esc(p.game)} · ${fmtT(p.start)}</div>
+    <div class="ln cond">${p.line}</div>
+    <div class="st">${esc(p.stat)}</div>
+    <div class="proj"><span class="lab">Proj</span> ${p.proj??'–'} ${dir}</div>
+    ${hits?`<div class="hits">${hits}</div>`:''}
+    <div class="ml">
+      <button class="L ${rec==='LESS'?'rec':''} ${s==='LESS'?'on':''}" ${p.lessMult==null?'disabled':''} onclick="pick('${p._k}','LESS',event)">↓ Less<small>${p.pLess==null?'n/a':pct(p.pLess)}${p.lessMult&&p.lessMult!==1?' · '+p.lessMult+'x':''}</small></button>
+      <button class="M ${rec==='MORE'?'rec':''} ${s==='MORE'?'on':''}" onclick="pick('${p._k}','MORE',event)">↑ More<small>${pct(p.pMore)}${p.moreMult&&p.moreMult!==1?' · '+p.moreMult+'x':''}</small></button>
+    </div></div>`;
 }
-function open(id){
-  const p=D.props.find(x=>x.id===id);if(!p)return;const pl=D.players[p.pk]||{};
-  const vals=p.log.map(g=>g[2]),mx=Math.max(p.line*1.4,...vals,1);
-  const glog=p.log.length?`<div class="glog"><div class="ln" style="bottom:${p.line/mx*100}%"></div>${p.log.map(g=>`<div class="c"><span style="font-size:11px">${g[2]}</span><i style="height:${Math.max(g[2]/mx*100,2)}%;background:${g[2]>p.line?'var(--more)':'var(--less)'}"></i><small>${esc(g[0])}</small></div>`).join('')}</div><div class="mute" style="font-size:12px;margin-top:4px">Dashed line = Pick6 line ${p.line}. Season avg <b>${p.seasonAvg??'–'}</b> · L5 avg <b>${p.l5Avg??'–'}</b> · Model projection <b>${p.proj??'–'}</b></div>`:'<div class="mute">No game log available.</div>';
-  const where=`<table class="mini"><tr><th>Venue</th><th>Line</th><th>Price</th><th>Win prob</th><th>EV / $1</th></tr>${p.where.map(w=>`<tr><td>${esc(w[0])}</td><td>${w[1]}</td><td>${esc(w[2])}</td><td>${pct(w[3])}</td><td class="${w[4]>0?'pos':'neg'}">${sgn(w[4])}</td></tr>`).join('')}</table><div class="mute" style="font-size:11px;margin-top:4px">For Pick6 rows, EV is per-pick edge vs the ${(D.bestBreakeven*100).toFixed(1)}% break-even.</div>`;
-  const books=p.books.length?`<table class="mini"><tr><th>Book</th><th>Line</th><th>Over</th><th>Under</th><th>Fair P(over) at ${p.line}</th></tr>${p.books.map(b=>`<tr><td>${esc(b[0])}</td><td>${b[1]}</td><td>${esc(b[2]??'–')}</td><td>${esc(b[3]??'–')}</td><td>${pct(b[4])}</td></tr>`).join('')}</table>`:'<div class="mute">No matching sportsbook prop found — probability is from stats only.</div>';
-  const lad=p.ladder.length?`<table class="mini"><tr><th>Alt line (MORE)</th><th>Multiplier</th><th>Hit prob</th><th>Value</th></tr>${p.ladder.map(a=>`<tr><td>${a[0]}</td><td>${a[1]}x</td><td>${pct(a[2])}</td><td class="${a[3]>0?'pos':'neg'}">${sgn(a[3])}</td></tr>`).join('')}</table>`:'';
-  const tb=(D.tables[p.mt]||[]).map(t=>`<div class="mute" style="font-size:12px;margin-bottom:4px">${esc(t.caption)}</div><table class="mini"><tr>${t.headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr>${t.rows.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</table>`).join('');
-  const g=D.games[p.gk];
-  const gl=g?`<table class="mini"><tr><th>Book</th><th>Moneyline</th><th>Spread</th><th>Total</th></tr>${Object.entries(g.books).map(([b,v])=>`<tr><td>${esc(b)}</td><td>${v.ml?Object.entries(v.ml).map(([t,o])=>esc(t)+' '+esc(o)).join('<br>'):'–'}</td><td>${v.spread?Object.entries(v.spread).map(([t,o])=>esc(t)+' '+(o[0]>0?'+':'')+o[0]+' ('+esc(o[1])+')').join('<br>'):'–'}</td><td>${v.total?'O/U '+v.total[0]+'<br>'+Object.entries(v.total[1]).map(([k,o])=>esc(k)+' '+esc(o)).join(' · '):'–'}</td></tr>`).join('')}</table>`:'<div class="mute">No game lines matched.</div>';
-  $('drawer').innerHTML=`<button class="x" onclick="closeD()">×</button>
-  <div class="pl"><img src="${esc(pl.img||'')}" style="width:56px;height:56px" onerror="this.style.visibility='hidden'"><div><h2>${esc(p.player)}</h2><div class="mute">${esc(p.pos)} · ${esc(p.team)} vs ${esc(p.opp)} · ${esc(p.game)} · ${fmtT(p.start)}</div></div></div>
-  <div style="margin-top:10px"><b>${esc(p.stat)}</b> — Pick6 line <b>${p.line}</b> ${p.moreMult!=null?`<span class="tag">MORE ${p.moreMult}x</span>`:''}${p.lessMult!=null?`<span class="tag">LESS ${p.lessMult}x</span>`:'<span class="tag">MORE only</span>'}</div>
-  <div class="big"><div><div class="mute">P(MORE)</div><div class="v pos">${pct(p.pMore)}</div></div><div><div class="mute">P(LESS)</div><div class="v" style="color:var(--less)">${p.pLess==null?'n/a':pct(p.pLess)}</div></div><div><div class="mute">Play</div><div class="v"><span class="chip ${p.pick}">${p.pick}</span></div><div class="${p.value>0?'pos':'neg'}">${sgn(p.value)}</div></div></div>
-  <div class="mute" style="font-size:12px;margin-top:6px">Basis: ${esc(p.basis)} · market ${pct(p.pMarket)} · stats ${pct(p.pStats)}</div>
-  <h3>Where to play</h3>${where}
-  ${p.bestAlt?`<div class="news" style="margin-top:8px">💡 Better on the Pick6 alt ladder: MORE ${p.bestAlt.line} at ${p.bestAlt.mult}x (${pct(p.bestAlt.p)} hit, ${sgn(p.bestAlt.value)} value)</div>`:''}
-  <h3>Last games vs line</h3>${glog}
-  <h3>Sportsbook odds</h3>${books}
-  ${lad?`<h3>Pick6 alt ladder</h3>${lad}`:''}
-  <h3>Matchup</h3>${tb||'<div class="mute">No matchup data.</div>'}
-  <h3>Game lines</h3>${gl}
-  ${pl.news?`<h3>Latest news (${esc(pl.news.date)})</h3><div class="news"><b>${esc(pl.news.summary)}</b><br><span class="mute">${esc(pl.news.details)}</span></div>`:''}
-  <div style="margin-top:16px"><button class="add ${SLIP.has(p.id)?'on':''}" onclick="toggleSlip(${p.id});open(${p.id})">${SLIP.has(p.id)?'✓ In slip':'+ Add to slip'}</button></div>`;
-  $('drawer').classList.add('open');
-}
-function closeD(){$('drawer').classList.remove('open')}
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeD()});
-function toggleSlip(id){SLIP.has(id)?SLIP.delete(id):SLIP.set(id,true);render();renderSlip()}
+const byK=k=>D.props.find(p=>p._k===k);
+function pick(k,side,e){if(e)e.stopPropagation();if(SLIP.get(k)===side)SLIP.delete(k);else SLIP.set(k,side);render();renderSlip();if($('sheet').classList.contains('open')){const st=$('sheet').scrollTop;openP(k);$('sheet').scrollTop=st}}
 function renderSlip(){
-  const ps=[...SLIP.keys()].map(id=>D.props.find(p=>p.id===id)).filter(Boolean);
-  if(!ps.length){$('slip').style.display='none';return}
+  const ps=[...SLIP.entries()].map(([k,s])=>({p:byK(k),s})).filter(x=>x.p);
+  if(!ps.length){$('slip').style.display='none';$('slip').classList.remove('open');return}
   $('slip').style.display='block';const n=ps.length;
-  const probs=ps.map(p=>p.pPick),mults=ps.map(p=>(p.pick==='MORE'?p.moreMult:p.lessMult)||1);
-  const pkg=D.payouts[n];let txt=`<b>${n}-pick slip</b> · all hit ${pct(probs.reduce((a,b)=>a*b,1))}`;
-  if(pkg){
-    // exact distribution of correct picks (independent picks)
-    let dist=[1];probs.forEach(p=>{const nd=Array(dist.length+1).fill(0);dist.forEach((v,k)=>{nd[k]+=v*(1-p);nd[k+1]+=v*p});dist=nd});
-    const boost=mults.reduce((a,b)=>a*b,1);let ev=0;
-    Object.entries(pkg.payouts).forEach(([k,m])=>{ev+=dist[+k]*m*(+k===n?boost:1)});
-    txt+=` · payout ${Object.entries(pkg.payouts).map(([k,m])=>k+'/'+n+' '+m+'x').join(', ')}${boost!==1?` (×${boost.toFixed(2)} multipliers)`:''} · <b class="${ev>1?'pos':'neg'}">EV ${ev>1?'+':''}${((ev-1)*100).toFixed(1)}%</b>`;
-  } else txt+=' · Pick6 needs 2–8 picks';
-  const teams=new Set(ps.map(p=>p.team));if(teams.size<2&&n>1)txt+=' · <span class="neg">needs 2+ teams</span>';
-  $('slipTxt').innerHTML=txt+'<br><span class="mute" style="font-size:12px">'+ps.map(p=>esc(p.player)+' '+p.pick+' '+p.line+' '+esc(p.stat)).join(' · ')+'</span>';
+  const probs=ps.map(({p,s})=>s==='MORE'?p.pMore:p.pLess),mults=ps.map(({p,s})=>(s==='MORE'?p.moreMult:p.lessMult)||1);
+  const allHit=probs.reduce((a,b)=>a*b,1),pkg=(D.payouts||{})[n];let ev=null;
+  if(pkg){let dist=[1];probs.forEach(q=>{const nd=Array(dist.length+1).fill(0);dist.forEach((v,k)=>{nd[k]+=v*(1-q);nd[k+1]+=v*q});dist=nd});
+    const boost=mults.reduce((a,b)=>a*b,1);ev=0;Object.entries(pkg.payouts).forEach(([k,m])=>{ev+=dist[+k]*m*(+k===n?boost:1)})}
+  $('slipN').textContent=n;
+  $('slipHeads').innerHTML=ps.slice(0,6).map(({p})=>`<img src="${esc(imgOf(p))}" onerror="fallbackImg(this)">`).join('');
+  $('slipSum').innerHTML=pkg?`All hit <b>${pct1(allHit)}</b> · <b class="${ev>1?'pos':'neg'}">EV ${ev>1?'+':''}${((ev-1)*100).toFixed(1)}%</b>`:'<span class="mute">Pick6 needs 2–8 picks</span>';
+  const teams=new Set(ps.map(({p})=>p.team));
+  $('slipBody').innerHTML=ps.map(({p,s})=>`<div class="sp-row"><img src="${esc(imgOf(p))}" onerror="fallbackImg(this)"><div><b>${esc(p.player)}</b> <span class="sideTag ${s}">${s==='MORE'?'↑ More':'↓ Less'} ${p.line}</span><div class="mute" style="font-size:12px">${esc(p.stat)} · Proj ${p.proj??'–'} · hit ${pct(s==='MORE'?p.pMore:p.pLess)} · ${esc(p.game)}</div></div><button class="x" onclick="pick('${p._k}','${s}',event)">×</button></div>`).join('')+
+    (pkg?`<div class="payout">${Object.entries(pkg.payouts).map(([k,m])=>`<div>${k}/${n} correct <b>${m}x</b></div>`).join('')}</div>`:'')+
+    (teams.size<2&&n>1?'<div class="neg" style="font-size:12px;margin:6px 0">Pick6 needs players from 2+ teams.</div>':'')+
+    `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><a class="btn" href="https://pick6.draftkings.com/?sport=${encodeURIComponent(ps[0].p.sport)}" target="_blank" rel="noopener">Open DraftKings Pick6 ↗</a><button class="btn ghost" onclick="copySlip()">Copy picks</button><button class="btn ghost" onclick="SLIP.clear();render();renderSlip()">Clear</button></div>`;
+}
+function copySlip(){const t=[...SLIP.entries()].map(([k,s])=>{const p=byK(k);return p?`${p.player} ${s} ${p.line} ${p.stat}`:''}).filter(Boolean).join('\n');navigator.clipboard&&navigator.clipboard.writeText(t)}
+function closeSheet(){$('sheet').classList.remove('open');$('ov').classList.remove('open')}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
+
+function statTable(pr,rows,key,line,withSeason){
+  const ki=key?(pr.keys||[]).indexOf(key):-1;
+  const head=`<tr><th>Date</th>${withSeason?'<th>Season</th>':''}<th>Opp</th><th>Result</th>${pr.cols.map((c,i)=>`<th class="${i===ki?'hl':''}">${esc(c)}</th>`).join('')}</tr>`;
+  const body=rows.map(r=>{const res=String(r[3]||'');return `<tr><td>${esc((r[0]||'').slice(5))}</td>${withSeason?`<td>${esc(r[r.length-1])}</td>`:''}<td>${esc(r[1]==='@'?'@':'vs')} ${esc(r[2])}</td><td><span class="${res==='W'?'W':res==='L'?'L':''}">${esc(res)}</span> <span class="mute">${esc(r[4])}</span></td>${pr.cols.map((c,i)=>{const v=r[5+i];const hit=i===ki&&typeof v==='number'?(v>line?'pos':'neg'):'';return `<td class="${i===ki?'hl':''}"><span class="${hit}">${num(v)}</span></td>`}).join('')}</tr>`}).join('');
+  return `<div class="scroll"><table class="tbl">${head}${body}</table></div>`;
+}
+function openP(k,e){
+  if(e&&e.target.closest('.ml'))return;
+  const p=byK(k);if(!p)return;const pl=D.players[p.pk]||{},bio=pl.bio||{};
+  const img=bio.img||pl.img||'';
+  const others=D.props.filter(x=>x.pk===p.pk&&x.sport===p.sport&&x.pick);
+  const bioItems=[['Height',bio.ht],['Weight',bio.wt],['Age',bio.age],[p.sport==='CFB'?'Class':'College',p.sport==='CFB'?bio.cls:bio.college],[p.sport==='CFB'?'Jersey':'Experience',p.sport==='CFB'?(bio.jersey?'#'+bio.jersey:null):bio.exp],['Hometown',bio.home]].filter(x=>x[1]!=null&&x[1]!=='');
+  const s=SLIP.get(k);
+  // game log chart for this stat: Pick6 last 5, else ESPN recent
+  let glv=p.log.map(g=>({o:g[0],v:g[2]}));
+  const ki=(pl.keys||[]).indexOf(p.statKey);
+  if(ki>=0&&pl.recent&&pl.recent.length>glv.length)glv=pl.recent.slice().reverse().map(r=>({o:(r[1]==='@'?'@':'')+r[2],v:r[5+ki]})).filter(g=>typeof g.v==='number');
+  const mx=Math.max(p.line*1.4,...glv.map(g=>g.v),1);
+  const chart=glv.length?`<div class="glog"><div class="lnl" style="bottom:${p.line/mx*100}%"></div>${glv.map(g=>`<div class="c"><span>${g.v}</span><i style="height:${Math.max(g.v/mx*100,2)}%;background:${g.v>p.line?'var(--more)':'var(--less)'}"></i><small>${esc(g.o)}</small></div>`).join('')}</div><div class="mute" style="font-size:12px;margin-top:6px">Dashed = line ${p.line} · Season avg <b>${p.seasonAvg??'–'}</b> · L5 avg <b>${p.l5Avg??'–'}</b>${p.l10?` · L10 avg <b>${p.l10[2]}</b>`:''}</div>`:'<div class="mute">No game log yet.</div>';
+  const vsSum=p.vs?`<div style="margin-bottom:8px">${esc(p.stat)} vs ${esc(p.opp)}: over ${p.line} in <b>${p.vs[0]} of ${p.vs[1]}</b> games, average <b>${p.vs[2]}</b></div>`:'';
+  const vs=pl.cols&&pl.vs&&pl.vs.length?vsSum+statTable(pl,pl.vs,p.statKey,p.line,true):`<div class="mute">No games vs ${esc(p.opp)} in the last 3 seasons${pl.cols?'':' (player not matched on ESPN)'}.</div>`;
+  const recent=pl.cols&&pl.recent&&pl.recent.length?statTable(pl,pl.recent,p.statKey,p.line,false):'<div class="mute">No ESPN game log found.</div>';
+  const season=pl.cols&&pl.avg&&pl.avg.some(v=>v!=null)?`<div class="scroll"><table class="tbl"><tr><th>${esc(pl.season||'Season')}</th><th>GP</th>${pl.cols.map((c,i)=>`<th class="${i===ki?'hl':''}">${esc(c)}</th>`).join('')}</tr><tr class="avg"><td>Per game</td><td>${pl.gp}</td>${pl.avg.map((v,i)=>`<td class="${i===ki?'hl':''}">${num(v)}</td>`).join('')}</tr></table></div>`:'';
+  const where=`<table class="tbl"><tr><th>Where</th><th>Line</th><th>Price</th><th>Hit %</th><th>Edge</th></tr>${p.where.map(w=>`<tr><td>${esc(w[0])}</td><td>${w[1]}</td><td>${esc(w[2])}</td><td>${pct1(w[3])}</td><td class="${w[4]>0?'pos':'neg'}">${sgn(w[4])}</td></tr>`).join('')}</table>`;
+  const books=p.books.length?`<table class="tbl"><tr><th>Book</th><th>Line</th><th>Over</th><th>Under</th><th>Fair More @ ${p.line}</th></tr>${p.books.map(b=>`<tr><td>${esc(b[0])}</td><td>${b[1]}</td><td>${esc(b[2]??'–')}</td><td>${esc(b[3]??'–')}</td><td>${pct1(b[4])}</td></tr>`).join('')}</table>`:'<div class="mute">No matching sportsbook prop — probability from stats only.</div>';
+  const lad=p.ladder.length?`<table class="tbl"><tr><th>Alt line (More)</th><th>Multiplier</th><th>Hit %</th><th>Edge</th></tr>${p.ladder.map(a=>`<tr><td>${a[0]}</td><td>${a[1]}x</td><td>${pct1(a[2])}</td><td class="${a[3]>0?'pos':'neg'}">${sgn(a[3])}</td></tr>`).join('')}</table>`:'';
+  const tb=(D.tables[p.mt]||[]).map(t=>`<div class="mute" style="font-size:12px;margin:6px 0 4px">${esc(t.caption)}</div><div class="scroll"><table class="tbl"><tr>${t.headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr>${t.rows.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</table></div>`).join('');
+  const g=D.games[p.gk];
+  const gl=g?`<table class="tbl"><tr><th>Book</th><th>Moneyline</th><th>Spread</th><th>Total</th></tr>${Object.entries(g.books).map(([b,v])=>`<tr><td>${esc(b)}</td><td>${v.ml?Object.entries(v.ml).map(([t,o])=>esc(t)+' '+esc(o)).join('<br>'):'–'}</td><td>${v.spread?Object.entries(v.spread).map(([t,o])=>esc(t)+' '+(o[0]>0?'+':'')+o[0]).join('<br>'):'–'}</td><td>${v.total?'O/U '+v.total[0]:'–'}</td></tr>`).join('')}</table>`:'';
+  $('sheet').innerHTML=`<div class="sh-head"><button class="sh-close" onclick="closeSheet()">×</button>
+    <div class="sh-top"><img class="big" src="${esc(img)}" data-f="${esc(bio.img&&pl.img?pl.img:'')}" onerror="fallbackImg(this)"><div><h2>${esc(p.player)}${bio.inj?`<span class="chipx">${esc(bio.inj)}</span>`:''}</h2>
+    <div class="sub">${bio.jersey&&p.sport!=='CFB'?'#'+esc(bio.jersey)+' · ':''}${esc(bio.pos||p.pos)} · ${esc(bio.team||p.team)}</div>
+    <div class="sub">${esc(p.game)} · ${fmtT(p.start)}</div></div></div>
+    ${bioItems.length?`<div class="bio">${bioItems.map(([a,b])=>`<div><small>${a}</small><b>${esc(b)}</b></div>`).join('')}</div>`:''}</div>
+  <div class="sec">
+    ${others.length>1?`<h3>All Pick6 props today</h3><div class="oprops">${others.map(o=>`<div class="op ${o._k===k?'on':''}" onclick="openP('${o._k}')"><small>${esc(o.stat)}</small><b>${o.line}</b><small>Proj ${o.proj??'–'} · <span class="${o.pick==='MORE'?'up':'dn'}">${o.pick==='MORE'?'↑ More':'↓ Less'} ${pct(o.pPick)}</span></small></div>`).join('')}</div>`:''}
+    <h3>${esc(p.stat)}</h3>
+    <div class="box"><div class="propbox"><div class="l"><div class="ln cond">${p.line}</div><div class="mute">Pick6 line${p.promo?' · '+esc(p.promo):''}</div></div>
+      <div class="ml" style="flex:1;min-width:220px;margin:0">
+        <button class="L ${p.pick==='LESS'?'rec':''} ${s==='LESS'?'on':''}" ${p.lessMult==null?'disabled':''} onclick="pick('${k}','LESS',event)">↓ Less<small>${p.pLess==null?'n/a':pct1(p.pLess)}</small></button>
+        <button class="M ${p.pick==='MORE'?'rec':''} ${s==='MORE'?'on':''}" onclick="pick('${k}','MORE',event)">↑ More<small>${pct1(p.pMore)}</small></button></div></div>
+      <div class="big3"><div><small>Projected</small><b class="${p.proj>p.line?'up':'dn'}">${p.proj??'–'}</b></div><div><small>Season avg</small><b>${p.seasonAvg??'–'}</b></div><div><small>Edge</small><b class="${p.value>0?'pos':'neg'}">${sgn(p.value)}</b></div></div>
+      <div class="mute" style="font-size:11px;margin-top:8px">Based on ${esc(p.basis)} · market ${pct1(p.pMarket)} · stats ${pct1(p.pStats)}</div></div>
+    <h3>Recent games — ${esc(p.stat)}</h3><div class="box">${chart}</div>
+    <h3>History vs ${esc(p.opp)} (last 3 seasons)</h3><div class="box">${vs}</div>
+    ${season?`<h3>Season stats</h3><div class="box">${season}</div>`:''}
+    <h3>Last 10 games</h3><div class="box">${recent}</div>
+    ${pl.news?`<h3>Latest news · ${esc(pl.news.date)}</h3><div class="news"><b>${esc(pl.news.summary)}</b><br><span class="mute">${esc(pl.news.details)}</span></div>`:''}
+    <h3>Where to play</h3><div class="box">${where}${p.bestAlt?`<div style="margin-top:8px;font-size:13px">💡 Better on the alt ladder: More ${p.bestAlt.line} at ${p.bestAlt.mult}x (${pct1(p.bestAlt.p)} hit, ${sgn(p.bestAlt.value)} edge)</div>`:''}</div>
+    <h3>Sportsbook odds</h3><div class="box">${books}</div>
+    ${lad?`<h3>Pick6 alt ladder</h3><div class="box">${lad}</div>`:''}
+    ${tb?`<h3>${esc(p.opp)} defense matchup</h3><div class="box">${tb}</div>`:''}
+    ${gl?`<h3>Game lines</h3><div class="box">${gl}</div>`:''}
+    <div style="height:30px"></div></div>`;
+  $('sheet').classList.add('open');$('ov').classList.add('open');$('sheet').scrollTop=0;
 }
 </script>
 </body>

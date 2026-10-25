@@ -2,14 +2,21 @@
 
 Live board for **DraftKings Pick6** player props — NFL, College Football and NBA.
 
+The board looks like the DraftKings Pick6 app: sport pills (NFL · NBA · NCAAF), Pick6's own category tabs (Points, Rebounds, Assists, 3-Pointers, Pts+Rebs+Asts, Defensive Stats, Passing, Rushing, Receiving, Touchdowns…), and a player card for every line with **↓ Less / ↑ More** buttons.
+
 For every Pick6 line it shows:
+
+- **Proj** – the number the player is expected to get (▲ above the line = lean More, ▼ below = lean Less)
+- **EDGE** tag on the side the model likes, with the hit % for More and Less
+- **L5 / L10 / vs-opponent** hit rates over the line
+- **Player pop-up** – headshot, height, weight, age, college (or class for NCAAF), experience, hometown, season averages, last 10 games, and every game vs. tonight's opponent over the last 3 seasons (ESPN)
 
 - **P(MORE) / P(LESS)** – model probability the player goes over / under the Pick6 line
 - **Value** – edge vs. the Pick6 break-even per pick (≈55% for a 3-pick 6x / 8-pick entry, 57.7% for 2-pick 3x), multiplier-aware
 - **Where to play** – Pick6 vs. each sportsbook (BetRivers, Bovada, + DraftKings/FanDuel/BetMGM/Caesars etc. if you add an Odds API key), ranked by expected profit per $1
 - **Matchup stats** – last 5 games vs. the line, season average, opponent defense rank, game moneyline/spread/total, latest news
 - **Alt ladder** – Pick6's alternate lines/multipliers with their hit probability
-- **Slip builder** – tap `+` on picks to see the chance every leg hits and the slip's EV using Pick6's real payout table
+- **Slip builder** – tap More/Less to build a slip, see the chance every leg hits and the slip's EV with Pick6's real payout table, then tap **Open DraftKings Pick6** to place it
 
 Site: `https://absinthe-007.github.io/Pick6-Edge/`
 
