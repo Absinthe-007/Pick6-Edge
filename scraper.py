@@ -42,6 +42,7 @@ SPORTS = {
     "NBA": {"kambi": "basketball/nba", "bovada": "basketball/nba", "oddsapi": "basketball_nba"},
 }
 
+NEXT_START = {}  # sport -> next start times Pick6 lists (shown when a sport has no lines yet)
 SESSION = requests.Session()
 SESSION.headers.update(UA)
 LOG = []
@@ -355,6 +356,10 @@ def pick6_sport(sport):
             r = None
             log(f"[pick6] {sport}: decode failed {e}")
         got = (r or {}).get("selectedSportLeague", {}).get("league", {}).get("leagueAbbreviation")
+        for sl in (r or {}).get("sportLeagues") or []:
+            ab = (sl.get("league") or {}).get("leagueAbbreviation")
+            if ab in SPORTS and sl.get("nextStartTimes"):
+                NEXT_START[ab] = sl["nextStartTimes"][:3]
         if r and got == sport:
             root = r
             break
@@ -1285,6 +1290,22 @@ def finish(t0, all_props, payouts_by_sport, book_lines, games):
             p.pop(k, None)
 
     prev = load_prev()
+    # a sport between slates (e.g. NBA overnight) keeps last run's lines that have not started yet,
+    # so the tab never disappears
+    now_ = datetime.now(timezone.utc)
+    have = {p["sport"] for p in all_props}
+    for sp in SPORTS:
+        if sp in have:
+            continue
+        keep = [q for q in prev.get("props", []) if q.get("sport") == sp and (parse_t(q.get("start")) or now_) > now_]
+        if keep:
+            all_props += keep
+            for q in keep:
+                if q.get("pk") in (prev.get("players") or {}):
+                    players.setdefault(q["pk"], prev["players"][q["pk"]])
+                if q.get("mt") in (prev.get("tables") or {}):
+                    tables.setdefault(q["mt"], prev["tables"][q["mt"]])
+            log(f"[pick6] {sp}: no lines this run - kept {len(keep)} upcoming props from last run")
     track = prev.get("track")
     try:
         track = update_track(track, all_props, datetime.now(timezone.utc))
@@ -1298,6 +1319,7 @@ def finish(t0, all_props, payouts_by_sport, book_lines, games):
         "players": players,
         "tables": tables,
         "games": used,
+        "nextStart": NEXT_START,
         "sources": ["DraftKings Pick6"] + sorted({b["book"] for v in book_lines.values() for b in v}),
         "log": LOG[-60:],
         "runtimeSec": round(time.time() - t0, 1),

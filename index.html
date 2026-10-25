@@ -210,8 +210,8 @@ fetch('data/props.json?'+Date.now()).then(r=>r.json()).then(d=>{D=d;D.props.forE
 function init(){
   $('upd').innerHTML='Updated '+new Date(D.updated).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+'<br>'+D.props.length+' Pick6 props';
   $('be').textContent=Object.entries(D.payouts||{}).map(([n,v])=>`${n}-pick ${Object.values(v.payouts)[0]}x → ${(v.breakeven*100).toFixed(1)}%`).join(', ');
-  const order=['NFL','NBA','CFB'];const sp=order.filter(s=>D.props.some(p=>p.sport===s));
-  if(!SPORT||!sp.includes(SPORT))SPORT=sp[0]||'NFL';
+  const sp=['NFL','NBA','CFB'];
+  if(!SPORT)SPORT=sp.find(s=>D.props.some(p=>p.sport===s&&p.pick))||'NFL';
   $('sports').innerHTML=sp.map(s=>`<button class="pill ${s===SPORT?'on':''}" data-s="${s}">${ICON[s]||''} ${lab(s)} <span class="n">${D.props.filter(p=>p.sport===s&&p.pick).length}</span></button>`).join('');
   $('sports').onclick=e=>{const b=e.target.closest('.pill');if(!b)return;SPORT=b.dataset.s;CAT='Top Edges';GAME='';LIMIT=120;init()};
   renderTrack();renderCats();renderGames();
@@ -254,7 +254,8 @@ function filtered(){
 function render(){
   if(!D)return;const a=filtered();
   $('sum').innerHTML=`<b>${a.length}</b> props · <b class="pos">${a.filter(p=>p.value>0).length}</b> beat the ${(D.bestBreakeven*100).toFixed(1)}% break-even · <b>${a.filter(p=>p.books.length).length}</b> backed by sportsbook odds`;
-  $('grid').innerHTML=a.slice(0,LIMIT).map(card).join('')||'<div class="empty">No props match.</div>';
+  const nx=((D.nextStart||{})[SPORT]||[])[0];
+  $('grid').innerHTML=a.slice(0,LIMIT).map(card).join('')||(sportProps().length?'<div class="empty">No props match.</div>':`<div class="empty">${ICON[SPORT]||''} No ${lab(SPORT)} lines on Pick6 right now${nx?' — next games '+fmtT(nx):''}. The board refreshes every 2 hours; new ${lab(SPORT)} lines show up here as soon as Pick6 posts them.</div>`);
   $('moreBtn').style.display=a.length>LIMIT?'block':'none';
 }
 function card(p){
