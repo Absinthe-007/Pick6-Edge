@@ -206,6 +206,10 @@ header{background:linear-gradient(180deg,rgba(2,10,20,.96),rgba(2,10,20,.82));ba
 .cleg>div:nth-child(2){flex:1;min-width:0}
 .cpr{font-family:Orbitron;font-weight:700;color:var(--good);font-size:16px}
 .cleg .x{background:none;border:0;color:var(--mute);font-size:18px;cursor:pointer}
+.wx{display:inline-block;font-size:11px;color:var(--dk2);border:1px solid var(--line);padding:2px 6px;border-radius:2px;margin-top:4px}
+.wx.hi{color:var(--gold);border-color:var(--gold)}.wx.in{color:var(--mute)}
+.wxn{display:block;font-size:11px;color:var(--gold);margin-top:4px}
+.wxrow{margin-top:2px}
 @media(prefers-reduced-motion:reduce){.logo .crown{animation:none}}
 </style>
 </head>
@@ -269,6 +273,19 @@ const ICON={NFL:'🏈',CFB:'🏈',NBA:'🏀'};
 const num=v=>v==null||v===''?'–':v;
 const kalshiUrl=p=>'https://kalshi.com/markets?search='+encodeURIComponent(p.player+' '+(p.statKey==='anytime_td'?'touchdown':p.stat));
 const kalshiBtn=(p,cls)=>`<a class="kalshi ${cls||''}" href="${kalshiUrl(p)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Open on Kalshi ↗</a>`;
+const dirTxt=d=>d==null?'':['N','NE','E','SE','S','SW','W','NW'][Math.round(d/45)%8];
+function wxLine(p){const w=p.wx;if(!w)return'';
+  if(w.roof==='dome')return'<span class="wx in">🏟 Indoors (dome)</span>';
+  if(w.temp==null)return w.roof==='retract'?'<span class="wx in">🏟 Retractable roof</span>':'';
+  const windy=(w.wind>=15||w.gust>=25),wet=(w.rain>=50);
+  return `<span class="wx ${windy?'hi':''}">${windy?'🌬':'🌤'} ${w.temp}°F · wind ${w.wind} mph${w.dir!=null?' '+dirTxt(w.dir):''} (gusts ${w.gust}) · rain ${w.rain}%${w.roof==='retract'?' · roof may be closed':''}</span>${windy?'<span class="wxn">High wind: passing & kicking props are riskier.</span>':''}${wet?'<span class="wxn">Likely rain: ball security / passing volume can shift.</span>':''}`}
+function formBox(p){const pl=D.players[p.pk]||{},f=pl.form;if(!f&&!p.wx)return'';
+  const rows=[];
+  if(f){rows.push(`<div><small>Rest</small><b>${f.b2b?'Back-to-back':f.restDays+' day'+(f.restDays===1?'':'s')}</b></div>`,
+   `<div><small>Last 7 days</small><b>${f.last7} game${f.last7===1?'':'s'}</b></div>`,
+   `<div><small>Last 14 days</small><b>${f.last14} game${f.last14===1?'':'s'}</b></div>`,
+   `<div><small>Road trip</small><b>${f.roadStreak?f.roadStreak+' away in a row':'Home last game'}</b></div>`)}
+  return `<h3>Schedule, travel &amp; conditions</h3><div class="box"><div class="bio" style="grid-template-columns:repeat(4,1fr)">${rows.join('')}</div>${p.wx?`<div style="margin-top:8px">${wxLine(p)}</div>`:''}</div>`}
 const imgOf=p=>{const pl=D.players[p.pk]||{};return (pl.bio||{}).img||pl.img||''};
 const img2=p=>{const pl=D.players[p.pk]||{};return pl.img&&(pl.bio||{}).img?pl.img:''};
 const fallbackImg=e=>{const f=e.dataset.f;if(f&&e.src!==f){e.src=f;e.dataset.f='';return}e.onerror=null;e.style.visibility='hidden'};
@@ -337,6 +354,7 @@ function card(p){
     <div class="meta">${esc(p.team)} - ${esc(p.pos)}</div>
     <div class="nm">${esc(p.player)}</div>
     <div class="gt">${esc(p.game)} · ${fmtT(p.start)}</div>
+    ${p.wx?`<div class="wxrow">${wxLine(p).split('<span class="wxn">')[0]}</div>`:''}
     <div class="ln cond">${p.line}</div>
     <div class="st">${esc(p.stat)}</div>
     <div class="proj"><span class="lab">Proj</span> ${p.proj??'–'} ${dir}</div>
@@ -441,6 +459,7 @@ function openP(k,e){
       <div class="big3"><div><small>Projected</small><b class="${p.proj>p.line?'up':'dn'}">${p.proj??'–'}</b></div><div><small>Season avg</small><b>${p.seasonAvg??'–'}</b></div><div><small>Edge</small><b class="${p.value>0?'pos':'neg'}">${sgn(p.value)}</b></div></div>
       <div class="mute" style="font-size:11px;margin-top:8px">Based on ${esc(p.basis)} · market ${pct1(p.pMarket)} · stats ${pct1(p.pStats)}</div>
       <div style="margin-top:10px">${kalshiBtn(p)}<span class="mute" style="font-size:11px;margin-left:8px">searches Kalshi for this player &mdash; check the market matches ${p.line} before betting</span></div></div>
+    ${formBox(p)}
     <h3>Recent games — ${esc(p.stat)}</h3><div class="box">${chart}</div>
     <h3>History vs ${esc(p.opp)} (last 3 seasons)</h3><div class="box">${vs}</div>
     ${season?`<h3>Season stats</h3><div class="box">${season}</div>`:''}

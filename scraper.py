@@ -717,7 +717,8 @@ def sb_props(book_lines):
         out.append({"id": zlib.crc32(f"{nm}|{key}|{meta['start']}".encode()), "sb": True, "sport": meta["sport"], "slate": "Sportsbook", "category": cat,
                     "player": meta["player"], "team": "", "opp": "", "pos": "", "game": meta["game"], "start": meta["start"],
                     "stat": stat, "statKey": key, "line": dk[0]["line"], "moreMult": 1, "lessMult": None if key == "anytime_td" else 1,
-                    "promo": None, "ladder": [], "log": [], "img": ""})
+                    "promo": None, "ladder": [], "log": [], "img": "", "dkIds": [meta["player"]],
+                    "homeTeam": meta["game"].split(" @ ")[-1], "awayTeam": meta["game"].split(" @ ")[0]})
     return out
 
 
@@ -1187,6 +1188,73 @@ def _team_match(full, abbr, t):
     return bool(a) and a.upper() == (t.get("abbreviation") or "").upper() and (not nf or nf.split()[-1] in nd.split() or nd.split()[0] in nf)
 
 
+def form_stats(games, start):
+    """Rest, workload and travel from the player's recent game log (most recent first)."""
+    t = parse_t(start)
+    try:
+        ds = [datetime.fromisoformat(g["date"]).replace(tzinfo=timezone.utc) for g in games if g.get("date")]
+    except Exception:
+        return None
+    if not ds or not t:
+        return None
+    last = ds[0]
+    days = (t.date() - last.date()).days
+    road = 0
+    for g in games:
+        if g.get("at") == "@":
+            road += 1
+        else:
+            break
+    return {"restDays": max(days - 1, 0), "b2b": days == 1,
+            "last7": sum(1 for d in ds if 0 < (t - d).days <= 7), "last14": sum(1 for d in ds if 0 < (t - d).days <= 14),
+            "roadStreak": road, "lastAway": bool(games and games[0].get("at") == "@")}
+
+
+# NFL stadiums: (lat, lon, roof). roof: open | dome | retract (retractable - weather shown, roof may be closed)
+NFL_STADIUMS = {
+    "cardinals": (33.5276, -112.2626, "retract"), "falcons": (33.7554, -84.4009, "retract"), "ravens": (39.2780, -76.6227, "open"),
+    "bills": (42.7738, -78.7870, "open"), "panthers": (35.2258, -80.8528, "open"), "bears": (41.8623, -87.6167, "open"),
+    "bengals": (39.0954, -84.5160, "open"), "browns": (41.5061, -81.6995, "open"), "cowboys": (32.7473, -97.0945, "retract"),
+    "broncos": (39.7439, -105.0201, "open"), "lions": (42.3400, -83.0456, "dome"), "packers": (44.5013, -88.0622, "open"),
+    "texans": (29.6847, -95.4107, "retract"), "colts": (39.7601, -86.1639, "retract"), "jaguars": (30.3239, -81.6373, "open"),
+    "chiefs": (39.0489, -94.4839, "open"), "raiders": (36.0909, -115.1833, "dome"), "chargers": (33.9535, -118.3392, "dome"),
+    "rams": (33.9535, -118.3392, "dome"), "dolphins": (25.9580, -80.2389, "open"), "vikings": (44.9738, -93.2575, "dome"),
+    "patriots": (42.0909, -71.2643, "open"), "saints": (29.9511, -90.0812, "dome"), "giants": (40.8135, -74.0745, "open"),
+    "jets": (40.8135, -74.0745, "open"), "eagles": (39.9008, -75.1675, "open"), "steelers": (40.4468, -80.0158, "open"),
+    "49ers": (37.4030, -121.9700, "open"), "seahawks": (47.5952, -122.3316, "open"), "buccaneers": (27.9759, -82.5033, "open"),
+    "titans": (36.1665, -86.7713, "open"), "commanders": (38.9076, -76.8645, "open"),
+}
+
+
+def add_weather(all_props):
+    """Kickoff-hour forecast (Open-Meteo, no key) for NFL games; domes are marked indoors."""
+    cache = {}
+    for p in all_props:
+        if p.get("sport") != "NFL" or not p.get("start"):
+            continue
+        home = (p.get("homeTeam") or (p.get("game", "").split("@")[-1] if "@" in p.get("game", "") else "")).strip()
+        st = NFL_STADIUMS.get(home.split()[-1].lower()) if home else None
+        if not st:
+            continue
+        key = (home, p["start"][:13])
+        if key not in cache:
+            wx = {"roof": st[2]}
+            if st[2] != "dome":
+                t = parse_t(p["start"])
+                d = get("https://api.open-meteo.com/v1/forecast", params={
+                    "latitude": st[0], "longitude": st[1], "hourly": "temperature_2m,precipitation_probability,wind_speed_10m,wind_gusts_10m,wind_direction_10m",
+                    "wind_speed_unit": "mph", "temperature_unit": "fahrenheit", "timezone": "UTC", "forecast_days": 7}) if t else None
+                try:
+                    h = d["hourly"]
+                    i = h["time"].index(t.strftime("%Y-%m-%dT%H:00"))
+                    wx.update({"temp": round(h["temperature_2m"][i]), "wind": round(h["wind_speed_10m"][i]), "gust": round(h["wind_gusts_10m"][i]),
+                               "rain": h["precipitation_probability"][i], "dir": h["wind_direction_10m"][i]})
+                except Exception:
+                    pass
+            cache[key] = wx
+        p["wx"] = cache[key]
+
+
 def espn_enrich(all_props):
     """Returns {pk: profile} and adds p['vs'] (history vs opponent for that stat) to each prop."""
     now = datetime.now(timezone.utc)
@@ -1272,7 +1340,7 @@ def espn_enrich(all_props):
                 "home": (a.get("birthPlace") or {}).get("displayText") or ", ".join(x for x in [(a.get("birthPlace") or {}).get("city"), (a.get("birthPlace") or {}).get("state") or (a.get("birthPlace") or {}).get("country")] if x) or None,
                 "status": (a.get("status") or {}).get("name") if (a.get("status") or {}).get("name") not in (None, "Active") else None,
                 "inj": ((a.get("injuries") or [{}])[0] or {}).get("status"),
-                "team": p["_teamFull"],
+                "team": None if p.get("sb") else p["_teamFull"],
             }.items() if v not in (None, "", [])}
             # which column set to show
             if sport == "NBA":
@@ -1296,6 +1364,7 @@ def espn_enrich(all_props):
             profiles[pk] = {"bio": bio, "cols": [c[1] for c in cols], "keys": ckeys, "season": cur[0]["season"] if cur else "", "gp": len(cur),
                             "avg": [avg.get(k) for k in ckeys], "recent": [row(g) for g in games[:10]],
                             "vsOpp": p.get("opp", ""), "vs": [row(g) + [g["season"][:7]] for g in vs_games[:15]],
+                            "form": form_stats(games, p.get("start")),
                             "_games": games, "_vs": vs_games}
         log(f"[espn] {sport}: {len(found)}/{len(players)} players matched, {sum(1 for pk in found if profiles.get(pk, {}).get('vs'))} with games vs opponent")
 
@@ -1383,7 +1452,7 @@ def finish(t0, all_props, payouts_by_sport, book_lines, games):
     pay = next(iter(payouts_by_sport.values()), {})
     best_be = min((v["breakeven"] for v in pay.values()), default=0.55)
     try:
-        profiles = espn_enrich([q for q in all_props if not q.get("sb")])
+        profiles = espn_enrich(all_props)
     except Exception as e:
         profiles = {}
         log(f"[espn] failed: {e}")
@@ -1395,6 +1464,11 @@ def finish(t0, all_props, payouts_by_sport, book_lines, games):
             analyse(p, book_lines, best_be)
         except Exception as e:
             log(f"[model] {p.get('player')} {p.get('stat')}: {e}")
+
+    try:
+        add_weather(all_props)
+    except Exception as e:
+        log(f"[weather] failed: {e}")
 
     # match game lines to Pick6 games (by team nickname)
     def find_game(p):
