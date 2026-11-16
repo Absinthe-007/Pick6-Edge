@@ -33,6 +33,8 @@ jobs:
       - name: Scrape Pick6 + sportsbooks and run model
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          PICK6_ENABLED: "0"        # set to "1" when you're back in Texas to use Pick6 lines again
+          ODDS_API_MAX_EVENTS: "5"   # games per sport per run (Odds API credits)
         run: python scraper.py
       - name: Build site
         run: |

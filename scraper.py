@@ -25,6 +25,7 @@ import re
 import sys
 import time
 import unicodedata
+import zlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 
@@ -47,6 +48,7 @@ NEXT_START = {}  # sport -> next start times Pick6 lists (shown when a sport has
 SESSION = requests.Session()
 SESSION.headers.update(UA)
 LOG = []
+SB_META = {}  # (player, statKey) -> game info for props that DraftKings' sportsbook lists (sportsbook mode)
 _SEEN_BAD = set()
 
 
@@ -659,8 +661,14 @@ def odds_api(sport, book_lines, games, wanted_games):
         return
     sk = SPORTS[sport]["oddsapi"]
     evs = get(f"{ODDS_API}/sports/{sk}/events", params={"apiKey": key}) or []
-    max_events = int(os.environ.get("ODDS_API_MAX_EVENTS", "16"))
-    evs = [e for e in evs if any(w in (e.get("home_team", "") + e.get("away_team", "")).lower() for w in wanted_games)][:max_events]
+    max_events = int(os.environ.get("ODDS_API_MAX_EVENTS", "16" if wanted_games is not None else "6"))
+    if wanted_games is None:  # sportsbook mode: next ~30h of games only (saves API credits), soonest first
+        horizon = datetime.now(timezone.utc) + timedelta(hours=30)
+        evs = sorted((e for e in evs if (parse_t(e.get("commence_time")) or horizon) <= horizon
+                      and (parse_t(e.get("commence_time")) or horizon) > datetime.now(timezone.utc)),
+                     key=lambda e: e.get("commence_time", ""))[:max_events]
+    else:
+        evs = [e for e in evs if any(w in (e.get("home_team", "") + e.get("away_team", "")).lower() for w in wanted_games)][:max_events]
     n = 0
     for e in evs:
         d = get(f"{ODDS_API}/sports/{sk}/events/{e['id']}/odds",
@@ -677,12 +685,83 @@ def odds_api(sport, book_lines, games, wanted_games):
                     side = o.get("name", "").lower()
                     if ck == "anytime_td":
                         add_line(book_lines, bname, pl, ck, 0.5, o.get("price"), None, sport); n += 1
+                        if "draftkings" in bname.lower():
+                            SB_META[(norm_name(pl), ck)] = {"sport": sport, "player": pl, "game": f"{e.get('away_team')} @ {e.get('home_team')}", "start": e.get("commence_time", "")}
                         continue
                     pairs.setdefault((pl, o.get("point")), {})[side] = o.get("price")
                 for (pl, pt), sides in pairs.items():
                     if pt is not None and "over" in sides:
                         add_line(book_lines, bname, pl, ck, pt, sides.get("over"), sides.get("under"), sport); n += 1
+                        if "draftkings" in bname.lower():
+                            SB_META[(norm_name(pl), ck)] = {"sport": sport, "player": pl, "game": f"{e.get('away_team')} @ {e.get('home_team')}", "start": e.get("commence_time", "")}
     log(f"[odds-api] {sport}: {len(evs)} events, {n} player lines")
+
+
+SB_LABEL = {"pass_yds": ("Passing Yards", "Passing"), "rush_yds": ("Rushing Yards", "Rushing"), "rec_yds": ("Receiving Yards", "Receiving"),
+            "receptions": ("Receptions", "Receiving"), "rush_rec_yds": ("Rush + Rec Yards", "Rushing"), "pass_tds": ("Passing TDs", "Passing"),
+            "anytime_td": ("Anytime TD", "Touchdowns"), "points": ("Points", "Points"), "rebounds": ("Rebounds", "Rebounds"),
+            "assists": ("Assists", "Assists"), "threes": ("3-Pointers Made", "3-Pointers"), "pra": ("Pts + Rebs + Asts", "Pts+Rebs+Asts")}
+SB_MIN_EDGE, SB_MIN_OTHER_BOOKS = 0.03, 2
+
+
+def sb_props(book_lines):
+    """Props for sportsbook mode: everything DraftKings' sportsbook lists, with the other books as the price check."""
+    out = []
+    for (nm, key), meta in SB_META.items():
+        dk = [e for e in book_lines.get((nm, key), []) if "draftkings" in e["book"].lower()]
+        if not dk or key not in SB_LABEL:
+            continue
+        stat, cat = SB_LABEL[key]
+        out.append({"id": zlib.crc32(f"{nm}|{key}|{meta['start']}".encode()), "sb": True, "sport": meta["sport"], "slate": "Sportsbook", "category": cat,
+                    "player": meta["player"], "team": "", "opp": "", "pos": "", "game": meta["game"], "start": meta["start"],
+                    "stat": stat, "statKey": key, "line": dk[0]["line"], "moreMult": 1, "lessMult": None if key == "anytime_td" else 1,
+                    "promo": None, "ladder": [], "log": [], "img": ""})
+    return out
+
+
+def analyse_sb(p, book_lines):
+    """Sportsbook mode: consensus of the OTHER books (de-vigged, moved to DraftKings' line) vs DraftKings' own price."""
+    key, line = p["statKey"], p["line"]
+    ents = book_lines.get((norm_name(p["player"]), key), [])
+    dk = next((e for e in ents if "draftkings" in e["book"].lower() and abs(e["line"] - line) < 1e-9), None)
+    others, seen = [], set()
+    sigma = sigma_for(key, line or 1, [])
+    for e in ents:
+        if "draftkings" in e["book"].lower() or (e["book"], e["line"]) in seen:
+            continue
+        fo = fair_over(e)
+        if fo is None:
+            continue
+        seen.add((e["book"], e["line"]))
+        others.append({"book": e["book"], "line": e["line"], "over": e["over"], "under": e["under"], "fair": round(fo, 3),
+                       "atP6": round(shift_line(key, e["line"], fo, line, sigma), 3)})
+    p["books"], p["basis"] = others, "market"
+    if not dk or not others:
+        p["pMore"] = p["pLess"] = p["pick"] = p["value"] = None
+        p["play"] = False
+        return
+    p_over = min(max(sum(b["atP6"] for b in others) / len(others), 0.005), 0.995)
+    opts = []
+    if dk["over"] is not None:
+        opts.append(("MORE", p_over, dk["over"]))
+    if dk["under"] is not None:
+        opts.append(("LESS", 1 - p_over, dk["under"]))
+    if not opts:
+        p["pMore"] = p["pLess"] = p["pick"] = p["value"] = None
+        p["play"] = False
+        return
+    side, ps, price = max(opts, key=lambda o: o[1] * am_to_dec(o[2]))
+    edge = ps * am_to_dec(price) - 1
+    model_key = key
+    p["pMore"] = round(p_over, 3)
+    p["pLess"] = round(1 - p_over, 3) if dk["under"] is not None else None
+    p["pick"], p["pPick"], p["value"] = side, round(ps, 3), round(edge, 3)
+    p["proj"] = round(max(lam_from_over(p_over, line) if key in COUNT_STATS else line + sigma * phi_inv(p_over), 0), 1)
+    p["boosted"] = False
+    p["bestAlt"] = None
+    p["play"] = bool(edge >= SB_MIN_EDGE and len(others) >= SB_MIN_OTHER_BOOKS)
+    p["where"] = [{"venue": "DraftKings", "line": line, "price": str(price), "p": round(ps, 3), "score": round(edge, 3)}]
+    p["bestVenue"] = "DraftKings"
 
 
 def game_key(away, home):
@@ -1218,19 +1297,23 @@ def main():
         all_props, payouts_by_sport, book_lines, games = pickle.load(open(cache, "rb"))
         return finish(t0, all_props, payouts_by_sport, book_lines, games)
     all_props, payouts_by_sport = [], {}
-    for sport in SPORTS:
-        props, payouts = pick6_sport(sport)
-        all_props += props
-        if payouts:
-            payouts_by_sport[sport] = payouts
+    pick6_on = os.environ.get("PICK6_ENABLED", "1") != "0"
+    if pick6_on:
+        for sport in SPORTS:
+            props, payouts = pick6_sport(sport)
+            all_props += props
+            if payouts:
+                payouts_by_sport[sport] = payouts
 
-    log(f"[pick6] fetching {len(all_props)} player cards...")
-    with ThreadPoolExecutor(8) as ex:
-        list(ex.map(pick6_card, all_props))
+        log(f"[pick6] fetching {len(all_props)} player cards...")
+        with ThreadPoolExecutor(8) as ex:
+            list(ex.map(pick6_card, all_props))
+    else:
+        log("[mode] Pick6 off (PICK6_ENABLED=0): sportsbook mode - DraftKings sportsbook is the place to play")
 
     book_lines, games = {}, {}
     for sport in SPORTS:
-        if not any(p["sport"] == sport for p in all_props):
+        if pick6_on and not any(p["sport"] == sport for p in all_props):
             continue
         for fn in (kambi, bovada):
             try:
@@ -1239,11 +1322,14 @@ def main():
                 log(f"[{fn.__name__}] {sport} failed: {e}")
         try:
             wanted = {w.lower().split()[-1] for p in all_props if p["sport"] == sport
-                      for w in (p.get("homeTeam", ""), p.get("awayTeam", "")) if w}
+                      for w in (p.get("homeTeam", ""), p.get("awayTeam", "")) if w} if pick6_on else None
             odds_api(sport, book_lines, games, wanted)
         except Exception as e:
             log(f"[odds-api] {sport} failed: {e}")
 
+    if not pick6_on:
+        all_props = sb_props(book_lines)
+        log(f"[sportsbook] {len(all_props)} DraftKings props")
     if cache:
         import pickle
         pickle.dump((all_props, payouts_by_sport, book_lines, games), open(cache, "wb"))
@@ -1254,12 +1340,15 @@ def finish(t0, all_props, payouts_by_sport, book_lines, games):
     pay = next(iter(payouts_by_sport.values()), {})
     best_be = min((v["breakeven"] for v in pay.values()), default=0.55)
     try:
-        profiles = espn_enrich(all_props)
+        profiles = espn_enrich([q for q in all_props if not q.get("sb")])
     except Exception as e:
         profiles = {}
         log(f"[espn] failed: {e}")
     for p in all_props:
         try:
+            if p.get("sb"):
+                analyse_sb(p, book_lines)
+                continue
             analyse(p, book_lines, best_be)
         except Exception as e:
             log(f"[model] {p.get('player')} {p.get('stat')}: {e}")
@@ -1342,7 +1431,7 @@ def finish(t0, all_props, payouts_by_sport, book_lines, games):
         "tables": tables,
         "games": used,
         "nextStart": NEXT_START,
-        "sources": ["DraftKings Pick6"] + sorted({b["book"] for v in book_lines.values() for b in v}),
+        "sources": (["DraftKings Pick6"] if any(not q.get("sb") for q in all_props) else ["DraftKings Sportsbook"]) + sorted({b["book"] for v in book_lines.values() for b in v}),
         "log": LOG[-60:],
         "runtimeSec": round(time.time() - t0, 1),
         "track": track,
