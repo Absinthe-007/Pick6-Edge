@@ -8,13 +8,13 @@
 <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#02060d">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Pick6 Edge">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&family=Barlow:wght@400;500;600;700;800&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#000;--card:#1b1b1b;--card2:#242424;--line:#2e2e2e;--txt:#fff;--mute:#9a9a9a;--dk:#53d337;--dk2:#61e443;--orange:#f46c22;--gold:#f7d002;--more:#53d337;--less:#f46c22;--bad:#ff4d4d}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -151,12 +151,57 @@ header{position:sticky;top:0;z-index:15;background:#000;border-bottom:1px solid 
 .news{background:var(--card);padding:12px;border-radius:12px;font-size:13px}
 .disc{color:var(--mute);font-size:11px;margin-top:24px;line-height:1.5}
 @media(max-width:560px){.grid{grid-template-columns:repeat(2,1fr);gap:8px}.card{padding:10px 8px 8px}.hs{width:60px;height:60px}.nm{font-size:14px}.ln{font-size:28px}.ml button{font-size:13px}.bio{grid-template-columns:repeat(2,1fr)}.sh-top .big{width:84px;height:84px}.sh-top h2{font-size:22px}.card .edge,.card .mult{font-size:10px;top:6px}.card .mult{left:6px}.card .edge{right:6px}}
+
+/* ===== SPACESHIP CONSOLE THEME ===== */
+:root{--bg:#02060d;--card:#071423;--card2:#0b1c31;--line:#12405f;--txt:#d8f3ff;--mute:#6f9bb5;--dk:#19f0ff;--dk2:#7df9ff;--orange:#ff9d1f;--gold:#ffd23f;--more:#19f0ff;--less:#ff9d1f;--bad:#ff3b5c;--good:#35ffa8}
+html,body{background:radial-gradient(1200px 700px at 80% -10%,#0a2a4a 0%,transparent 60%),radial-gradient(900px 600px at -10% 110%,#10204a 0%,transparent 55%),var(--bg);color:var(--txt);font-family:'Share Tech Mono',Barlow,monospace;background-attachment:fixed}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:99;background:repeating-linear-gradient(0deg,rgba(25,240,255,.035) 0 1px,transparent 1px 3px);mix-blend-mode:screen}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;background-image:linear-gradient(rgba(25,240,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(25,240,255,.06) 1px,transparent 1px);background-size:44px 44px;mask-image:radial-gradient(ellipse at 50% 30%,#000 30%,transparent 80%)}
+.cond,.logo,.pc,.ln,h2,h3,.nm{font-family:Orbitron,'Barlow Condensed',sans-serif;letter-spacing:.04em}
+header{background:linear-gradient(180deg,rgba(2,10,20,.96),rgba(2,10,20,.82));backdrop-filter:blur(8px);border-bottom:1px solid var(--line);box-shadow:0 0 24px rgba(25,240,255,.15)}
+.logo{font-weight:900;font-size:19px;text-transform:uppercase}
+.logo .crown{background:transparent;color:var(--dk);border:2px solid var(--dk);border-radius:50%;box-shadow:0 0 14px var(--dk),inset 0 0 10px rgba(25,240,255,.5);font-family:Orbitron;animation:pulse 3s ease-in-out infinite}
+.logo i{color:var(--dk);text-shadow:0 0 12px var(--dk)}
+@keyframes pulse{50%{box-shadow:0 0 24px var(--dk),inset 0 0 16px rgba(25,240,255,.8)}}
+.upd{font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.08em}
+.upd::before{content:"● ";color:var(--good);text-shadow:0 0 8px var(--good)}
+.pill{background:rgba(7,20,35,.8);border:1px solid var(--line);border-radius:4px;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);padding:7px 20px;text-transform:uppercase;font-family:Orbitron;font-size:12px;letter-spacing:.1em;color:var(--mute)}
+.pill.on{background:linear-gradient(180deg,rgba(25,240,255,.28),rgba(25,240,255,.08));color:#fff;border-color:var(--dk);text-shadow:0 0 10px var(--dk);box-shadow:0 0 18px rgba(25,240,255,.45)}
+.pill .n{color:var(--mute)}.pill.on .n{color:var(--dk2)}
+.cat{font-family:Orbitron;font-size:11px;text-transform:uppercase;letter-spacing:.12em}
+.cat.on{color:var(--dk);border-color:var(--dk);text-shadow:0 0 10px var(--dk)}
+.trk,.card,.gm,.news,.box,.tools input[type=search],.tools select,.tg{background:linear-gradient(160deg,rgba(11,28,49,.92),rgba(5,14,26,.92));border:1px solid var(--line);border-radius:3px}
+.trk{clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,0 100%);position:relative}
+.trk .sp{font-family:Orbitron;color:var(--dk);letter-spacing:.14em}
+.trk .pc{text-shadow:0 0 14px currentColor}
+.card{clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px));border:1px solid var(--line);transition:all .18s}
+.card:hover{border-color:var(--dk);box-shadow:0 0 22px rgba(25,240,255,.3);transform:translateY(-2px)}
+.card.sel{border-color:var(--good);box-shadow:0 0 26px rgba(53,255,168,.4);background:linear-gradient(160deg,rgba(10,50,45,.9),rgba(5,20,26,.95))}
+.card .edge{font-family:Orbitron;border-radius:2px;letter-spacing:.06em}
+.card .mult{background:var(--gold);border-radius:2px}
+.hs img{border:2px solid var(--dk)!important;box-shadow:0 0 16px rgba(25,240,255,.5)}
+.nm{font-weight:700}
+.ln{color:#fff;text-shadow:0 0 16px rgba(25,240,255,.7)}
+.pos{color:var(--good)!important;text-shadow:0 0 8px rgba(53,255,168,.6)}.neg{color:var(--bad)!important}
+.up{color:var(--good)}.dn{color:var(--orange)}
+.ml button,.btn{background:linear-gradient(180deg,rgba(11,28,49,1),rgba(6,16,30,1));border:1px solid var(--line);border-radius:3px;font-family:Orbitron;text-transform:uppercase;letter-spacing:.08em;font-size:12px}
+.ml button.rec,.btn{border-color:var(--dk);box-shadow:0 0 14px rgba(25,240,255,.35)}
+.btn{color:var(--dk2);text-decoration:none;padding:9px 14px;display:inline-block}
+.btn.ghost{box-shadow:none;border-color:var(--line);color:var(--mute)}
+.combo{cursor:pointer;color:var(--gold)!important;border-color:var(--gold)!important;font-family:Orbitron;letter-spacing:.08em;text-transform:uppercase;box-shadow:0 0 14px rgba(255,210,63,.3)}
+.kalshi{background:rgba(53,255,168,.08)!important;border:1px solid var(--good)!important;color:var(--good)!important;border-radius:2px!important;font-family:Orbitron;letter-spacing:.06em;text-transform:uppercase;font-size:10px!important}
+#slip{background:linear-gradient(180deg,rgba(4,16,30,.97),rgba(2,8,16,.99))!important;border-top:1px solid var(--dk)!important;box-shadow:0 -8px 40px rgba(25,240,255,.25)}
+#sheet{background:linear-gradient(180deg,#051222,#02060d)!important;border-top:1px solid var(--dk)!important}
+.gm.on{border-color:var(--dk);background:rgba(25,240,255,.1)}
+.tg input{accent-color:var(--dk)}
+::-webkit-scrollbar{height:6px;width:6px}::-webkit-scrollbar-thumb{background:var(--line)}
+@media(prefers-reduced-motion:reduce){.logo .crown{animation:none}}
 </style>
 </head>
 <body>
 <header>
   <div class="hrow">
-    <div class="logo"><div class="crown">6</div><span>PICK6 <i>EDGE</i></span></div>
+    <div class="logo"><div class="crown">6</div><span>PICK6 <i>EDGE</i> <small style="font-size:9px;color:var(--mute);letter-spacing:.2em">// COMMAND DECK</small></span></div>
     <div class="upd" id="upd">Loading…</div>
   </div>
   <div class="pills" id="sports"></div>
@@ -177,6 +222,7 @@ header{position:sticky;top:0;z-index:15;background:#000;border-bottom:1px solid 
     <label class="tg"><input type="checkbox" id="pos"> +Edge only</label>
     <label class="tg"><input type="checkbox" id="std" checked> Standard 1x only</label>
     <label class="tg"><input type="checkbox" id="mkt"> Has sportsbook odds</label>
+    <button class="tg combo" onclick="autoSlip()">⚡ Auto-build combo (top plays)</button>
   </div>
   <div class="sum" id="sum"></div>
   <div class="grid" id="grid"></div>
@@ -212,7 +258,7 @@ const fallbackImg=e=>{const f=e.dataset.f;if(f&&e.src!==f){e.src=f;e.dataset.f='
 fetch('data/props.json?'+Date.now()).then(r=>r.json()).then(d=>{D=d;D.props.forEach(p=>p._k=p.sport+'|'+p.id);init()}).catch(()=>{$('upd').textContent='Could not load data — the scraper has not run yet.'});
 
 function init(){
-  $('upd').innerHTML='Updated '+new Date(D.updated).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+'<br>'+D.props.length+' Pick6 props';
+  $('upd').innerHTML='Updated '+new Date(D.updated).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+'<br>'+D.props.length+(D.props.some(p=>p.sb)?' sportsbook props':' Pick6 props');
   $('be').textContent=Object.entries(D.payouts||{}).map(([n,v])=>`${n}-pick ${Object.values(v.payouts)[0]}x → ${(v.breakeven*100).toFixed(1)}%`).join(', ');
   const sp=['NFL','NBA','CFB'];
   if(!SPORT)SPORT=sp.find(s=>D.props.some(p=>p.sport===s&&p.pick))||'NFL';
@@ -257,7 +303,7 @@ function filtered(){
 }
 function render(){
   if(!D)return;const a=filtered();
-  $('sum').innerHTML=`<b>${a.length}</b> props · <b class="pos">${a.filter(p=>p.play).length}</b> book-backed plays beat the ${(D.bestBreakeven*100).toFixed(1)}% break-even · <b>${a.filter(p=>p.books.length).length}</b> backed by sportsbook odds`;
+  $('sum').innerHTML=`<b>${a.length}</b> props · <b class="pos">${a.filter(p=>p.play).length}</b> ${a.some(p=>p.sb)?'plays pass the accuracy filter (&ge;55% hit, &ge;3 books agree)':'book-backed plays beat the '+(D.bestBreakeven*100).toFixed(1)+'% break-even'} · <b>${a.filter(p=>p.books.length).length}</b> backed by sportsbook odds`;
   const nx=((D.nextStart||{})[SPORT]||[])[0];
   $('grid').innerHTML=a.slice(0,LIMIT).map(card).join('')||(sportProps().length?'<div class="empty">No props match.</div>':`<div class="empty">${ICON[SPORT]||''} No ${lab(SPORT)} lines on Pick6 right now${nx?' — next games '+fmtT(nx):''}. The board refreshes every 2 hours; new ${lab(SPORT)} lines show up here as soon as Pick6 posts them.</div>`);
   $('moreBtn').style.display=a.length>LIMIT?'block':'none';
@@ -295,13 +341,16 @@ function renderSlip(){
     const boost=mults.reduce((a,b)=>a*b,1);ev=0;Object.entries(pkg.payouts).forEach(([k,m])=>{ev+=dist[+k]*m*(+k===n?boost:1)})}
   $('slipN').textContent=n;
   $('slipHeads').innerHTML=ps.slice(0,6).map(({p})=>`<img src="${esc(imgOf(p))}" onerror="fallbackImg(this)">`).join('');
-  $('slipSum').innerHTML=pkg?`All hit <b>${pct1(allHit)}</b> · <b class="${ev>1?'pos':'neg'}">EV ${ev>1?'+':''}${((ev-1)*100).toFixed(1)}%</b>`:'<span class="mute">Pick6 needs 2–8 picks</span>';
+  $('slipSum').innerHTML=pkg?`All hit <b>${pct1(allHit)}</b> · <b class="${ev>1?'pos':'neg'}">EV ${ev>1?'+':''}${((ev-1)*100).toFixed(1)}%</b>`:`All hit <b>${pct1(allHit)}</b> · <span class="mute">${n} legs</span>`;
   const teams=new Set(ps.map(({p})=>p.team));
-  $('slipBody').innerHTML=ps.map(({p,s})=>`<div class="sp-row"><img src="${esc(imgOf(p))}" onerror="fallbackImg(this)"><div><b>${esc(p.player)}</b> <span class="sideTag ${s}">${s==='MORE'?'↑ More':'↓ Less'} ${p.line}</span><div class="mute" style="font-size:12px">${esc(p.stat)} · Proj ${p.proj??'–'} · hit ${pct(s==='MORE'?p.pMore:p.pLess)} · ${esc(p.game)}</div></div><button class="x" onclick="pick('${p._k}','${s}',event)">×</button></div>`).join('')+
+  $('slipBody').innerHTML=ps.map(({p,s})=>`<div class="sp-row"><img src="${esc(imgOf(p))}" onerror="fallbackImg(this)"><div><b>${esc(p.player)}</b> <span class="sideTag ${s}">${s==='MORE'?'↑ More':'↓ Less'} ${p.line}</span><div class="mute" style="font-size:12px">${esc(p.stat)} · Proj ${p.proj??'–'} · hit ${pct(s==='MORE'?p.pMore:p.pLess)} · ${esc(p.game)}</div></div>${kalshiBtn(p,'sm')}<button class="x" onclick="pick('${p._k}','${s}',event)">×</button></div>`).join('')+
     (pkg?`<div class="payout">${Object.entries(pkg.payouts).map(([k,m])=>`<div>${k}/${n} correct <b>${m}x</b></div>`).join('')}</div>`:'')+
     (teams.size<2&&n>1?'<div class="neg" style="font-size:12px;margin:6px 0">Pick6 needs players from 2+ teams.</div>':'')+
-    `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><a class="btn" href="https://pick6.draftkings.com/?sport=${encodeURIComponent(ps[0].p.sport)}" target="_blank" rel="noopener">Open DraftKings Pick6 ↗</a><button class="btn ghost" onclick="copySlip()">Copy picks</button><button class="btn ghost" onclick="SLIP.clear();render();renderSlip()">Clear</button></div>`;
+    `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><a class="btn" href="${ps[0].p.sb?'https://sportsbook.draftkings.com/':'https://pick6.draftkings.com/?sport='+encodeURIComponent(ps[0].p.sport)}" target="_blank" rel="noopener">${ps[0].p.sb?'Open DraftKings ↗':'Open DraftKings Pick6 ↗'}</a><button class="btn ghost" onclick="copySlip()">Copy picks</button><button class="btn ghost" onclick="SLIP.clear();render();renderSlip()">Clear</button></div>`;
 }
+function autoSlip(){const N=6,seen=new Set();SLIP.clear();
+  D.props.filter(p=>p.sport===SPORT&&p.play&&p.pick&&p.pPick).sort((x,y)=>y.pPick-x.pPick||y.value-x.value).forEach(p=>{if(SLIP.size>=N||seen.has(p.pk))return;seen.add(p.pk);SLIP.set(p._k,p.pick)});
+  if(!SLIP.size)alert('No plays pass the accuracy filter right now.');render();renderSlip()}
 function copySlip(){const t=[...SLIP.entries()].map(([k,s])=>{const p=byK(k);return p?`${p.player} ${s} ${p.line} ${p.stat}`:''}).filter(Boolean).join('\n');navigator.clipboard&&navigator.clipboard.writeText(t)}
 function closeSheet(){$('sheet').classList.remove('open');$('ov').classList.remove('open')}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
@@ -341,7 +390,7 @@ function openP(k,e){
     <div class="sub">${esc(p.game)} · ${fmtT(p.start)}</div></div></div>
     ${bioItems.length?`<div class="bio">${bioItems.map(([a,b])=>`<div><small>${a}</small><b>${esc(b)}</b></div>`).join('')}</div>`:''}</div>
   <div class="sec">
-    ${others.length>1?`<h3>All Pick6 props today</h3><div class="oprops">${others.map(o=>`<div class="op ${o._k===k?'on':''}" onclick="openP('${o._k}')"><small>${esc(o.stat)}</small><b>${o.line}</b><small>Proj ${o.proj??'–'} · <span class="${o.pick==='MORE'?'up':'dn'}">${o.pick==='MORE'?'↑ More':'↓ Less'} ${pct(o.pPick)}</span></small></div>`).join('')}</div>`:''}
+    ${others.length>1?`<h3>All props today</h3><div class="oprops">${others.map(o=>`<div class="op ${o._k===k?'on':''}" onclick="openP('${o._k}')"><small>${esc(o.stat)}</small><b>${o.line}</b><small>Proj ${o.proj??'–'} · <span class="${o.pick==='MORE'?'up':'dn'}">${o.pick==='MORE'?'↑ More':'↓ Less'} ${pct(o.pPick)}</span></small></div>`).join('')}</div>`:''}
     <h3>${esc(p.stat)}</h3>
     <div class="box"><div class="propbox"><div class="l"><div class="ln cond">${p.line}</div><div class="mute">${p.sb?'DraftKings line':'Pick6 line'}${p.promo?' · '+esc(p.promo):''}</div></div>
       <div class="ml" style="flex:1;min-width:220px;margin:0">
