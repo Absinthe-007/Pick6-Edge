@@ -109,6 +109,8 @@ header{position:sticky;top:0;z-index:15;background:#000;border-bottom:1px solid 
 #sheet.open{transform:none}
 .sh-head{position:relative;padding:18px 16px 14px;background:linear-gradient(180deg,#1d2b17 0%,#0f0f0f 100%)}
 .sh-close{position:absolute;top:10px;right:12px;background:#222;border:0;width:34px;height:34px;border-radius:50%;font-size:20px;cursor:pointer;color:#fff}
+.kalshi{display:inline-block;padding:7px 12px;border-radius:8px;background:#0b3d2e;border:1px solid #1fbf8f;color:#6fffd0;font-weight:700;font-size:13px;text-decoration:none}
+.kalshi.sm{margin-top:6px;padding:4px 8px;font-size:11px}
 .sh-top{display:flex;gap:14px;align-items:center}
 .sh-top .big{width:108px;height:108px;border-radius:50%;background:#2a2a2a;object-fit:cover;border:3px solid var(--dk);flex:none}
 .sh-top h2{margin:0;font-size:26px;font-weight:800;line-height:1.05}
@@ -201,6 +203,8 @@ const fmtT=s=>{if(!s)return'';const d=new Date(s);return d.toLocaleString([],{we
 const lab=s=>s==='CFB'?'NCAAF':s;
 const ICON={NFL:'🏈',CFB:'🏈',NBA:'🏀'};
 const num=v=>v==null||v===''?'–':v;
+const kalshiUrl=p=>'https://kalshi.com/markets?search='+encodeURIComponent(p.player+' '+(p.statKey==='anytime_td'?'touchdown':p.stat));
+const kalshiBtn=(p,cls)=>`<a class="kalshi ${cls||''}" href="${kalshiUrl(p)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Open on Kalshi ↗</a>`;
 const imgOf=p=>{const pl=D.players[p.pk]||{};return (pl.bio||{}).img||pl.img||''};
 const img2=p=>{const pl=D.players[p.pk]||{};return pl.img&&(pl.bio||{}).img?pl.img:''};
 const fallbackImg=e=>{const f=e.dataset.f;if(f&&e.src!==f){e.src=f;e.dataset.f='';return}e.onerror=null;e.style.visibility='hidden'};
@@ -273,6 +277,7 @@ function card(p){
     <div class="st">${esc(p.stat)}</div>
     <div class="proj"><span class="lab">Proj</span> ${p.proj??'–'} ${dir}</div>
     ${hits?`<div class="hits">${hits}</div>`:''}
+    ${p.play?kalshiBtn(p,'sm'):''}
     <div class="ml">
       <button class="L ${rec==='LESS'?'rec':''} ${s==='LESS'?'on':''}" ${p.lessMult==null?'disabled':''} onclick="pick('${p._k}','LESS',event)">↓ Less<small>${p.pLess==null?'n/a':pct(p.pLess)}${p.lessMult&&p.lessMult!==1?' · '+p.lessMult+'x':''}</small></button>
       <button class="M ${rec==='MORE'?'rec':''} ${s==='MORE'?'on':''}" onclick="pick('${p._k}','MORE',event)">↑ More<small>${pct(p.pMore)}${p.moreMult&&p.moreMult!==1?' · '+p.moreMult+'x':''}</small></button>
@@ -338,12 +343,13 @@ function openP(k,e){
   <div class="sec">
     ${others.length>1?`<h3>All Pick6 props today</h3><div class="oprops">${others.map(o=>`<div class="op ${o._k===k?'on':''}" onclick="openP('${o._k}')"><small>${esc(o.stat)}</small><b>${o.line}</b><small>Proj ${o.proj??'–'} · <span class="${o.pick==='MORE'?'up':'dn'}">${o.pick==='MORE'?'↑ More':'↓ Less'} ${pct(o.pPick)}</span></small></div>`).join('')}</div>`:''}
     <h3>${esc(p.stat)}</h3>
-    <div class="box"><div class="propbox"><div class="l"><div class="ln cond">${p.line}</div><div class="mute">Pick6 line${p.promo?' · '+esc(p.promo):''}</div></div>
+    <div class="box"><div class="propbox"><div class="l"><div class="ln cond">${p.line}</div><div class="mute">${p.sb?'DraftKings line':'Pick6 line'}${p.promo?' · '+esc(p.promo):''}</div></div>
       <div class="ml" style="flex:1;min-width:220px;margin:0">
         <button class="L ${p.pick==='LESS'?'rec':''} ${s==='LESS'?'on':''}" ${p.lessMult==null?'disabled':''} onclick="pick('${k}','LESS',event)">↓ Less<small>${p.pLess==null?'n/a':pct1(p.pLess)}</small></button>
         <button class="M ${p.pick==='MORE'?'rec':''} ${s==='MORE'?'on':''}" onclick="pick('${k}','MORE',event)">↑ More<small>${pct1(p.pMore)}</small></button></div></div>
       <div class="big3"><div><small>Projected</small><b class="${p.proj>p.line?'up':'dn'}">${p.proj??'–'}</b></div><div><small>Season avg</small><b>${p.seasonAvg??'–'}</b></div><div><small>Edge</small><b class="${p.value>0?'pos':'neg'}">${sgn(p.value)}</b></div></div>
-      <div class="mute" style="font-size:11px;margin-top:8px">Based on ${esc(p.basis)} · market ${pct1(p.pMarket)} · stats ${pct1(p.pStats)}</div></div>
+      <div class="mute" style="font-size:11px;margin-top:8px">Based on ${esc(p.basis)} · market ${pct1(p.pMarket)} · stats ${pct1(p.pStats)}</div>
+      <div style="margin-top:10px">${kalshiBtn(p)}<span class="mute" style="font-size:11px;margin-left:8px">searches Kalshi for this player &mdash; check the market matches ${p.line} before betting</span></div></div>
     <h3>Recent games — ${esc(p.stat)}</h3><div class="box">${chart}</div>
     <h3>History vs ${esc(p.opp)} (last 3 seasons)</h3><div class="box">${vs}</div>
     ${season?`<h3>Season stats</h3><div class="box">${season}</div>`:''}
