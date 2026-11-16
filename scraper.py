@@ -701,7 +701,8 @@ SB_LABEL = {"pass_yds": ("Passing Yards", "Passing"), "rush_yds": ("Rushing Yard
             "receptions": ("Receptions", "Receiving"), "rush_rec_yds": ("Rush + Rec Yards", "Rushing"), "pass_tds": ("Passing TDs", "Passing"),
             "anytime_td": ("Anytime TD", "Touchdowns"), "points": ("Points", "Points"), "rebounds": ("Rebounds", "Rebounds"),
             "assists": ("Assists", "Assists"), "threes": ("3-Pointers Made", "3-Pointers"), "pra": ("Pts + Rebs + Asts", "Pts+Rebs+Asts")}
-SB_MIN_EDGE, SB_MIN_OTHER_BOOKS = 0.03, 2
+# A "play" must be likely to HIT (accuracy first), have a real price edge, and be confirmed by several agreeing books.
+SB_MIN_EDGE, SB_MIN_OTHER_BOOKS, SB_MIN_PROB, SB_MAX_SPREAD = 0.03, 3, 0.55, 0.06
 
 
 def sb_props(book_lines):
@@ -732,6 +733,8 @@ def analyse_sb(p, book_lines):
         fo = fair_over(e)
         if fo is None:
             continue
+        if abs(e["line"] - line) > max(1.0, 0.06 * line):  # a far-away line makes the line-shift guess noisy - ignore it
+            continue
         seen.add((e["book"], e["line"]))
         others.append({"book": e["book"], "line": e["line"], "over": e["over"], "under": e["under"], "fair": round(fo, 3),
                        "atP6": round(shift_line(key, e["line"], fo, line, sigma), 3)})
@@ -759,7 +762,9 @@ def analyse_sb(p, book_lines):
     p["proj"] = round(max(lam_from_over(p_over, line) if key in COUNT_STATS else line + sigma * phi_inv(p_over), 0), 1)
     p["boosted"] = False
     p["bestAlt"] = None
-    p["play"] = bool(edge >= SB_MIN_EDGE and len(others) >= SB_MIN_OTHER_BOOKS)
+    spread = max(b["atP6"] for b in others) - min(b["atP6"] for b in others)
+    p["spread"] = round(spread, 3)
+    p["play"] = bool(edge >= SB_MIN_EDGE and ps >= SB_MIN_PROB and len(others) >= SB_MIN_OTHER_BOOKS and spread <= SB_MAX_SPREAD)
     p["where"] = [{"venue": "DraftKings", "line": line, "price": str(price), "p": round(ps, 3), "score": round(edge, 3)}]
     p["bestVenue"] = "DraftKings"
 
