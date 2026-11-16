@@ -30,7 +30,8 @@ from datetime import datetime, timedelta, timezone
 
 import requests
 
-UA = {"User-Agent": "pick6-edge/1.0"}
+UA = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+      "Accept": "application/json, text/plain, */*", "Accept-Language": "en-US,en;q=0.9"}
 P6 = "https://pick6.draftkings.com"
 KAMBI = "https://eu-offering-api.kambicdn.com/offering/v2018/rsiusnj"
 BOVADA = "https://www.bovada.lv/services/sports/event/coupon/events/A/description"
@@ -46,6 +47,7 @@ NEXT_START = {}  # sport -> next start times Pick6 lists (shown when a sport has
 SESSION = requests.Session()
 SESSION.headers.update(UA)
 LOG = []
+_SEEN_BAD = set()
 
 
 def log(*a):
@@ -60,10 +62,15 @@ def get(url, params=None, as_text=False, tries=3):
             r = SESSION.get(url, params=params, timeout=30)
             if r.status_code == 200:
                 return r.text if as_text else r.json()
+            if url not in _SEEN_BAD:  # say why a source returned nothing (once per URL)
+                _SEEN_BAD.add(url)
+                log(f"[http] {r.status_code} {url.split('?')[0][-70:]} {r.text[:120]!r}")
             if r.status_code in (403, 404, 400, 401, 426):
                 return None
-        except Exception:
-            pass
+        except Exception as e:
+            if url not in _SEEN_BAD:
+                _SEEN_BAD.add(url)
+                log(f"[http] error {url.split('?')[0][-70:]} {type(e).__name__}: {str(e)[:100]}")
         time.sleep(1.5 * (i + 1))
     return None
 
