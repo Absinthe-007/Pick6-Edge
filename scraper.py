@@ -774,6 +774,9 @@ def analyse(p, book_lines, best_be):
     else:
         side, p_side, val, mult = "MORE", p_over, v_more if v_more is not None else p_over / best_be - 1, p.get("moreMult") or 1
     p["pick"], p["pPick"], p["value"] = side, round(p_side, 3), round(val, 3)
+    # "play" = a real recommendation: positive edge AND backed by at least one sportsbook price.
+    # Stats-only numbers and forced one-sided picks (e.g. anytime TD has no Less) are shown, never counted as plays.
+    p["play"] = bool(val > 0 and books)
 
     # alt ladder (MORE only on Pick6)
     lad = []
@@ -911,7 +914,11 @@ def actual_value(sport, key, st):
 
 def update_track(track, all_props, now):
     track = track or {}
+    if track.get("v") != 2:  # v2: only graded real plays (edge>0 + book-backed), with units + calibration
+        track = {"v": 2, "since": now.date().isoformat(), "legacy": {"record": track.get("record"), "since": track.get("since"),
+                                                                  "note": "v1 graded every forced pick incl. negative-edge TD props"}}
     pending = track.get("pending") or {}
+    cal = track.get("cal") or {}
     rec = track.get("record") or {}
     recent = track.get("recent") or []
     track.setdefault("since", now.date().isoformat())
@@ -919,12 +926,14 @@ def update_track(track, all_props, now):
     # 1) save / refresh every recommendation for games that have not started yet
     for p in all_props:
         t = parse_t(p.get("start"))
-        if not p.get("pick") or not t or t <= now or " + " in p.get("player", "") \
+        if not p.get("play") or not t or t <= now or " + " in p.get("player", "") \
                 or p.get("statKey") not in GRADEABLE.get(p["sport"], ()):
             continue
         pending[f"{p['sport']}|{p['id']}"] = {"s": p["sport"], "pl": p["player"], "st": p.get("stat"), "k": p["statKey"],
                                               "line": p["line"], "pick": p["pick"], "pp": p.get("pPick"),
-                                              "v": p.get("value"), "t": p["start"][:19]}
+                                              "v": p.get("value"), "t": p["start"][:19],
+                                              "m": (p.get("moreMult") if p["pick"] == "MORE" else p.get("lessMult")) or 1,
+                                              "b": p.get("basis"), "nb": len(p.get("books") or [])}
 
     # 2) grade finished games
     sb_cache, box_cache, graded = {}, {}, 0
@@ -944,17 +953,23 @@ def update_track(track, all_props, now):
         if val is None and not (final and now > t + timedelta(hours=12)) and now < t + timedelta(hours=GIVE_UP_H):
             continue  # box score not posted yet - try again next run
         del pending[pid]
-        r = rec.setdefault(e["s"], {"w": 0, "l": 0, "push": 0, "void": 0, "vw": 0, "vl": 0})
+        r = rec.setdefault(e["s"], {"w": 0, "l": 0, "push": 0, "void": 0, "vw": 0, "vl": 0, "u": 0.0, "exp": 0.0})
         if val is None or val == "dnp":
             r["void"] += 1
             continue
         res = "push" if val == e["line"] else ("w" if (val > e["line"]) == (e["pick"] == "MORE") else "l")
         r[res] += 1
-        if res != "push" and (e.get("v") or 0) > 0:
+        if res != "push":
             r["v" + res] += 1
+            r["u"] = round(r.get("u", 0.0) + ((e.get("m") or 1) - 1 if res == "w" else -1), 3)  # units at the pick's multiplier
+            r["exp"] = round(r.get("exp", 0.0) + (e.get("pp") or 0), 3)  # expected wins, to compare with actual wins
+            bk = f"{int((e.get('pp') or 0) * 20) / 20:.2f}"  # 5% probability buckets for calibration
+            c = cal.setdefault(bk, [0, 0])
+            c[1] += 1
+            c[0] += res == "w"
         graded += 1
         recent.append([e["s"], e["pl"], e["st"], e["line"], e["pick"], val, res, e["t"][:10]])
-    track.update({"pending": pending, "record": rec, "recent": recent[-300:]})
+    track.update({"pending": pending, "record": rec, "recent": recent[-300:], "cal": cal})
     log(f"[track] graded {graded}, pending {len(pending)}")
     return track
 

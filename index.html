@@ -226,7 +226,7 @@ function renderTrack(){
   const sports=['NFL','NBA','CFB'].filter(s=>R[s]||D.props.some(p=>p.sport===s));
   const col=x=>x==null?'#fff':x>=.55?'var(--dk)':x>=.5?'var(--gold)':'var(--bad)';
   $('track').innerHTML=sports.map(s=>{const r=R[s]||{},n=(r.w||0)+(r.l||0),pc=n?r.w/n:null,pend=P.filter(e=>e.s===s).length;
-    return `<div class="trk"><div class="sp">${lab(s)} · picks right</div><div class="pc" style="color:${col(pc)}">${pc==null?'–':(pc*100).toFixed(1)+'%'}</div><div class="rec">${n?`${r.w}-${r.l} (${n} graded)`:'No graded picks yet'}${pend?` · ${pend} pending`:''}</div></div>`}).join('');
+    return `<div class="trk"><div class="sp">${lab(s)} · plays right</div><div class="pc" style="color:${col(pc)}">${pc==null?'–':(pc*100).toFixed(1)+'%'}</div><div class="rec">${n?`${r.w}-${r.l} (${n} graded) · ${(r.u||0)>=0?'+':''}${(r.u||0).toFixed(1)}u`:'No graded plays yet'}${pend?` · ${pend} pending`:''}</div></div>`}).join('');
 }
 function sportProps(){return D.props.filter(p=>p.sport===SPORT&&p.pick)}
 function renderCats(){
@@ -245,7 +245,7 @@ function renderGames(){
 }
 function filtered(){
   const q=$('q').value.toLowerCase().trim(),pos=$('pos').checked,std=$('std').checked,mk=$('mkt').checked;
-  let a=sportProps().filter(p=>(CAT==='Top Edges'||p.category===CAT)&&(!GAME||p.game===GAME)&&(!pos||p.value>0)&&(!std||!p.boosted)&&(!mk||p.books.length)&&(!q||(p.player+' '+p.team+' '+p.opp+' '+p.game+' '+p.stat).toLowerCase().includes(q)));
+  let a=sportProps().filter(p=>(CAT==='Top Edges'||p.category===CAT)&&(!GAME||p.game===GAME)&&(!pos||p.play)&&(!std||!p.boosted)&&(!mk||p.books.length)&&(!q||(p.player+' '+p.team+' '+p.opp+' '+p.game+' '+p.stat).toLowerCase().includes(q)));
   if(CAT==='Top Edges'){const seen=new Set();a=a.filter(p=>p.statKey&&!seen.has(p.pk+'|'+p.stat)&&seen.add(p.pk+'|'+p.stat))}
   const so=$('sort').value,gap=p=>p.proj==null?0:Math.abs(p.proj-p.line)/Math.max(p.line,1);
   a.sort(so==='prob'?(x,y)=>y.pPick-x.pPick:so==='diff'?(x,y)=>gap(y)-gap(x):so==='start'?(x,y)=>String(x.start).localeCompare(String(y.start))||y.value-x.value:so==='player'?(x,y)=>x.player.localeCompare(y.player):(x,y)=>y.value-x.value);
@@ -253,7 +253,7 @@ function filtered(){
 }
 function render(){
   if(!D)return;const a=filtered();
-  $('sum').innerHTML=`<b>${a.length}</b> props · <b class="pos">${a.filter(p=>p.value>0).length}</b> beat the ${(D.bestBreakeven*100).toFixed(1)}% break-even · <b>${a.filter(p=>p.books.length).length}</b> backed by sportsbook odds`;
+  $('sum').innerHTML=`<b>${a.length}</b> props · <b class="pos">${a.filter(p=>p.play).length}</b> book-backed plays beat the ${(D.bestBreakeven*100).toFixed(1)}% break-even · <b>${a.filter(p=>p.books.length).length}</b> backed by sportsbook odds`;
   const nx=((D.nextStart||{})[SPORT]||[])[0];
   $('grid').innerHTML=a.slice(0,LIMIT).map(card).join('')||(sportProps().length?'<div class="empty">No props match.</div>':`<div class="empty">${ICON[SPORT]||''} No ${lab(SPORT)} lines on Pick6 right now${nx?' — next games '+fmtT(nx):''}. The board refreshes every 2 hours; new ${lab(SPORT)} lines show up here as soon as Pick6 posts them.</div>`);
   $('moreBtn').style.display=a.length>LIMIT?'block':'none';
