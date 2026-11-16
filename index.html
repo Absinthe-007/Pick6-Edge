@@ -195,6 +195,17 @@ header{background:linear-gradient(180deg,rgba(2,10,20,.96),rgba(2,10,20,.82));ba
 .gm.on{border-color:var(--dk);background:rgba(25,240,255,.1)}
 .tg input{accent-color:var(--dk)}
 ::-webkit-scrollbar{height:6px;width:6px}::-webkit-scrollbar-thumb{background:var(--line)}
+.cbar{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin:0 0 12px;padding:10px 12px;border:1px solid var(--gold);border-radius:3px;background:rgba(255,210,63,.05)}
+.cbar label{color:var(--mute);font-size:12px;display:flex;gap:6px;align-items:center}
+.cbar select{background:#071423;color:#fff;border:1px solid var(--line);padding:5px 8px;border-radius:3px;font:inherit}
+.cbar input[type=range]{accent-color:var(--gold)}
+.cout{border:1px solid var(--good);border-radius:3px;background:linear-gradient(160deg,rgba(7,40,38,.9),rgba(4,14,22,.95));padding:12px;margin-bottom:14px;box-shadow:0 0 22px rgba(53,255,168,.18)}
+.chead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;font-size:15px}
+.cleg{display:flex;gap:10px;align-items:center;padding:7px 0;border-top:1px solid rgba(25,240,255,.15)}
+.cleg img{width:38px;height:38px;border-radius:50%;object-fit:cover;border:1px solid var(--dk);background:#0b1c31;flex:none}
+.cleg>div:nth-child(2){flex:1;min-width:0}
+.cpr{font-family:Orbitron;font-weight:700;color:var(--good);font-size:16px}
+.cleg .x{background:none;border:0;color:var(--mute);font-size:18px;cursor:pointer}
 @media(prefers-reduced-motion:reduce){.logo .crown{animation:none}}
 </style>
 </head>
@@ -209,6 +220,13 @@ header{background:linear-gradient(180deg,rgba(2,10,20,.96),rgba(2,10,20,.82));ba
 </header>
 <div class="wrap">
   <div class="track" id="track"></div>
+  <div class="cbar">
+    <b class="cond">⚡ COMBO BUILDER</b>
+    <label>Min hit chance <select id="cMin"><option value="0.8" selected>80%</option><option value="0.85">85%</option><option value="0.9">90%</option><option value="0.95">95%</option></select></label>
+    <label>Legs <input type="range" id="cN" min="6" max="10" value="6" oninput="$('cNv').textContent=this.value"> <b id="cNv">6</b></label>
+    <button class="tg combo" onclick="buildCombo()">Build combo</button>
+  </div>
+  <div id="comboOut"></div>
   <div class="games" id="games"></div>
   <div class="tools">
     <input type="search" id="q" placeholder="Search players or teams">
@@ -222,7 +240,7 @@ header{background:linear-gradient(180deg,rgba(2,10,20,.96),rgba(2,10,20,.82));ba
     <label class="tg"><input type="checkbox" id="pos"> +Edge only</label>
     <label class="tg"><input type="checkbox" id="std" checked> Standard 1x only</label>
     <label class="tg"><input type="checkbox" id="mkt"> Has sportsbook odds</label>
-    <button class="tg combo" onclick="autoSlip()">⚡ Auto-build combo (top plays)</button>
+
   </div>
   <div class="sum" id="sum"></div>
   <div class="grid" id="grid"></div>
@@ -348,6 +366,30 @@ function renderSlip(){
     (teams.size<2&&n>1?'<div class="neg" style="font-size:12px;margin:6px 0">Pick6 needs players from 2+ teams.</div>':'')+
     `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><a class="btn" href="${ps[0].p.sb?'https://sportsbook.draftkings.com/':'https://pick6.draftkings.com/?sport='+encodeURIComponent(ps[0].p.sport)}" target="_blank" rel="noopener">${ps[0].p.sb?'Open DraftKings ↗':'Open DraftKings Pick6 ↗'}</a><button class="btn ghost" onclick="copySlip()">Copy picks</button><button class="btn ghost" onclick="SLIP.clear();render();renderSlip()">Clear</button></div>`;
 }
+let COMBO=[];
+function buildCombo(){
+  const min=+$('cMin').value,N=+$('cN').value,best=new Map();
+  D.props.filter(p=>p.safe&&p.safe.length&&p.books.length>=3).forEach(p=>{
+    const ok=p.safe.filter(x=>x[1]>=min&&x[0]>=1);if(!ok.length)return;
+    const t=ok.reduce((a,b)=>b[0]>a[0]?b:a);           // highest threshold that still clears the minimum
+    const c={p,t:t[0],pr:t[1]},o=best.get(p.pk+'|'+p.sport);
+    if(!o||c.pr>o.pr)best.set(p.pk+'|'+p.sport,c)});
+  const all=[...best.values()].sort((a,b)=>b.pr-a.pr);
+  // at most one leg per player AND per stat-type per game, so legs are less likely to be the same bet twice
+  const used=new Set();COMBO=[];
+  for(const c of all){const k=c.p.game+'|'+c.p.statKey+'|'+c.p.pk;if(used.has(k))continue;used.add(k);COMBO.push(c);if(COMBO.length>=N)break}
+  renderCombo(N,min)}
+function legLabel(c){return `${c.p.player} ${c.t}+ ${c.p.stat}`}
+function kalshiLeg(c){return 'https://kalshi.com/markets?search='+encodeURIComponent(c.p.player+' '+c.t+' '+c.p.stat)}
+function renderCombo(N,min){
+  const el=$('comboOut');
+  if(!COMBO.length){el.innerHTML=`<div class="cout neg">No legs reach ${Math.round(min*100)}% right now. Try a lower minimum or wait for more games to post lines.</div>`;return}
+  const all=COMBO.reduce((a,c)=>a*c.pr,1),short=COMBO.length<N;
+  el.innerHTML=`<div class="cout"><div class="chead"><b class="cond">${COMBO.length}-LEG COMBO</b><span>all legs hit: <b class="${all>=.3?'pos':'neg'}">${(all*100).toFixed(1)}%</b></span></div>
+  ${short?`<div class="neg" style="font-size:12px;margin-bottom:6px">Only ${COMBO.length} legs clear ${Math.round(min*100)}% right now (you asked for ${N}).</div>`:''}
+  ${COMBO.map((c,i)=>`<div class="cleg"><img src="${esc(imgOf(c.p))}" onerror="fallbackImg(this)"><div><b>${esc(c.p.player)}</b> <span class="sideTag MORE">${c.t}+ ${esc(c.p.stat)}</span><div class="mute" style="font-size:12px">${esc(c.p.game)} · ${fmtT(c.p.start)}</div></div><div class="cpr">${(c.pr*100).toFixed(0)}%</div><a class="kalshi sm" href="${kalshiLeg(c)}" target="_blank" rel="noopener">Kalshi ↗</a><button class="x" onclick="COMBO.splice(${i},1);renderCombo(${N},${min})">×</button></div>`).join('')}
+  <div class="mute" style="font-size:11px;margin:8px 0">Hit chances are model estimates from the books' consensus line moved to each threshold, minus a 3-point safety haircut. Legs are treated as independent; same-game legs are usually correlated, so the real all-hit chance can differ. Combined odds shrink fast: that is the math of parlays.</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="COMBO.forEach(c=>window.open(kalshiLeg(c),'_blank'))">Open all on Kalshi ↗</button><button class="btn ghost" onclick="navigator.clipboard&&navigator.clipboard.writeText(COMBO.map(legLabel).join('\n'))">Copy legs</button></div></div>`}
 function autoSlip(){const N=6,seen=new Set();SLIP.clear();
   D.props.filter(p=>p.sport===SPORT&&p.play&&p.pick&&p.pPick).sort((x,y)=>y.pPick-x.pPick||y.value-x.value).forEach(p=>{if(SLIP.size>=N||seen.has(p.pk))return;seen.add(p.pk);SLIP.set(p._k,p.pick)});
   if(!SLIP.size)alert('No plays pass the accuracy filter right now.');render();renderSlip()}

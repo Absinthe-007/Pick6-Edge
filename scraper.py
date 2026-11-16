@@ -703,6 +703,7 @@ SB_LABEL = {"pass_yds": ("Passing Yards", "Passing"), "rush_yds": ("Rushing Yard
             "assists": ("Assists", "Assists"), "threes": ("3-Pointers Made", "3-Pointers"), "pra": ("Pts + Rebs + Asts", "Pts+Rebs+Asts")}
 # A "play" must be likely to HIT (accuracy first), have a real price edge, and be confirmed by several agreeing books.
 SB_MIN_EDGE, SB_MIN_OTHER_BOOKS, SB_MIN_PROB, SB_MAX_SPREAD = 0.03, 3, 0.55, 0.06
+SB_TAIL_HAIRCUT = 0.03  # tails of the line-shift model are the least reliable part - shave probability to stay conservative
 
 
 def sb_props(book_lines):
@@ -764,9 +765,42 @@ def analyse_sb(p, book_lines):
     p["bestAlt"] = None
     spread = max(b["atP6"] for b in others) - min(b["atP6"] for b in others)
     p["spread"] = round(spread, 3)
+    # "X+" thresholds with a high model hit chance (Kalshi-style legs): consensus line shifted to each threshold, minus a tail haircut
+    p["safe"] = []
+    if key != "anytime_td" and len(others) >= SB_MIN_OTHER_BOOKS and spread <= SB_MAX_SPREAD:
+        step = 5 if key in ("pass_yds", "rush_yds", "rec_yds", "rush_rec_yds") else 1
+        for t in range(step, int(line * 1.25) + step, step):
+            pr = shift_line(key, line, p_over, t - 0.5, sigma) - SB_TAIL_HAIRCUT
+            if 0.7 <= pr <= 0.97:
+                p["safe"].append([t, round(pr, 3)])
     p["play"] = bool(edge >= SB_MIN_EDGE and ps >= SB_MIN_PROB and len(others) >= SB_MIN_OTHER_BOOKS and spread <= SB_MAX_SPREAD)
     p["where"] = [{"venue": "DraftKings", "line": line, "price": str(price), "p": round(ps, 3), "score": round(edge, 3)}]
     p["bestVenue"] = "DraftKings"
+
+
+def sb_headshots(props, prev):
+    """ESPN headshot per player (same search call the Pick6 profile code uses); reuses last run's images."""
+    league = {"NFL": "nfl", "CFB": "college-football", "NBA": "nba"}
+    cached = {pk: v.get("img") for pk, v in (prev.get("players") or {}).items() if v.get("img")}
+    todo = {}
+    for p in props:
+        if p["player"] in cached:
+            p["img"] = cached[p["player"]]
+        else:
+            todo.setdefault((p["sport"], p["player"]), []).append(p)
+
+    def find(k):
+        sport, name = k
+        d = get(f"{ESPN_WEB}/search", params={"query": name, "type": "player", "limit": 5}) or {}
+        for it in d.get("items", []):
+            if it.get("league") == league[sport] and norm_name(it.get("displayName")) == norm_name(name):
+                return k, f"https://a.espncdn.com/i/headshots/{league[sport]}/players/full/{it['id']}.png"
+        return k, None
+    with ThreadPoolExecutor(8) as ex:
+        for k, url in ex.map(find, list(todo)[:400]):
+            for p in todo[k]:
+                p["img"] = url or ""
+    log(f"[headshots] {sum(1 for p in props if p.get('img'))}/{len(props)} props have a photo")
 
 
 def game_key(away, home):
@@ -1334,6 +1368,10 @@ def main():
 
     if not pick6_on:
         all_props = sb_props(book_lines)
+        try:
+            sb_headshots(all_props, load_prev())
+        except Exception as e:
+            log(f"[headshots] failed: {e}")
         log(f"[sportsbook] {len(all_props)} DraftKings props")
     if cache:
         import pickle
