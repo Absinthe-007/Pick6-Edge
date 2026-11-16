@@ -795,8 +795,7 @@ def analyse(p, book_lines, best_be):
     if p["bestAlt"]:
         where.append({"venue": "DK Pick6 (alt)", "line": best_alt["line"], "price": f"{best_alt['mult']}x", "p": best_alt["p"], "score": best_alt["value"]})
     for b in books:
-        if "draftkings" not in b["book"].lower():  # other books feed the probability but are never a place to play
-            continue
+        continue  # Pick6 only: sportsbooks feed the probability but are never a place to play
         price = b["over"] if side == "MORE" else b["under"]
         if price is None:
             continue
